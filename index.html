@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#08120d">
+  <title>MONNIXCODE Terminal</title>
+  <style>
+    :root { --bg:#08120d; --panel:#0d1b13; --panel2:#10251a; --line:#234a31; --text:#d8f6dc; --muted:#83a98b; --green:#54e878; --cyan:#6fe8d0; --yellow:#f4d36a; --red:#ff7d7d; --glow:rgba(84,232,120,.22); --header:linear-gradient(90deg,#102719,#0b1810); }
+    * { box-sizing:border-box; }
+    html,body { margin:0; min-height:100%; background:radial-gradient(circle at 80% 0%,#143b27 0,#08120d 42%); color:var(--text); font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace; transition:background .35s,color .35s; }
+    body { padding:18px; }
+    .app { width:min(1120px,100%); margin:0 auto; border:1px solid var(--line); border-radius:16px; overflow:hidden; background:rgba(8,18,13,.88); box-shadow:0 22px 70px #0008,0 0 35px var(--glow); transition:box-shadow .35s; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:16px 20px; background:var(--header); border-bottom:1px solid var(--line); }
+    .brand { display:flex; align-items:center; gap:12px; } .mark { color:var(--green); font-size:23px; font-weight:800; letter-spacing:-3px; text-shadow:0 0 12px var(--green); } h1 { margin:0; font-size:16px; letter-spacing:.08em; text-shadow:0 0 10px var(--glow); } .sub { color:var(--muted); font-size:11px; margin-top:4px; }
+    .actions { display:flex; gap:8px; } button { border:1px solid var(--line); background:var(--panel2); color:var(--text); padding:8px 11px; border-radius:8px; font:inherit; font-size:12px; cursor:pointer; transition:.2s; } button:hover { border-color:var(--green); color:var(--green); box-shadow:0 0 12px var(--glow); }
+    main { display:grid; grid-template-columns:1fr 265px; min-height:650px; } .terminal-wrap { display:flex; flex-direction:column; min-width:0; }
+    #terminal { flex:1; padding:22px; min-height:540px; max-height:calc(100vh - 170px); overflow:auto; white-space:pre-wrap; word-break:break-word; line-height:1.55; font-size:14px; outline:none; background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px); background-size:100% 4px; }
+    .line { margin:0 0 3px; } .prompt { color:var(--green); text-shadow:0 0 8px var(--glow); } .cmd { color:#fff; } .muted { color:var(--muted); } .ok { color:var(--green); } .info { color:var(--cyan); } .warn { color:var(--yellow); } .err { color:var(--red); }
+    .input-row { display:flex; align-items:center; gap:9px; padding:13px 20px 16px; border-top:1px solid var(--line); background:var(--panel); } .input-row .prompt { white-space:nowrap; } #command { flex:1; min-width:0; border:0; outline:0; color:var(--text); background:transparent; font:inherit; font-size:14px; } #command:focus { text-shadow:0 0 8px var(--glow); }
+    aside { border-left:1px solid var(--line); background:rgba(13,27,19,.72); padding:20px; } aside h2 { margin:0 0 16px; font-size:13px; color:var(--green); text-shadow:0 0 8px var(--glow); } .card { border:1px solid var(--line); border-radius:10px; padding:12px; margin-bottom:12px; background:var(--panel); } .card strong { display:block; font-size:12px; margin-bottom:6px; } .card span { color:var(--muted); font-size:11px; line-height:1.5; }
+    .chips { display:flex; flex-wrap:wrap; gap:6px; } .chip { padding:5px 7px; color:var(--cyan); background:var(--panel2); border:1px solid var(--line); border-radius:6px; font-size:11px; cursor:pointer; transition:.2s; } .chip:hover { color:#fff; border-color:var(--cyan); box-shadow:0 0 10px var(--glow); }
+    footer { border-top:1px solid var(--line); color:var(--muted); padding:10px 20px; font-size:11px; display:flex; justify-content:space-between; gap:12px; }
+    body[data-theme="cyberpunk"] { --bg:#10091a; --panel:#1b1027; --panel2:#241333; --line:#743d8d; --text:#f9eaff; --muted:#c18ddd; --green:#ff3bd4; --cyan:#2de2e6; --yellow:#ffe66d; --red:#ff657a; --glow:rgba(255,59,212,.34); --header:linear-gradient(90deg,#24102f,#12091b); background:radial-gradient(circle at 12% 0%,#3b1553 0,#10091a 48%); }
+    body[data-theme="cyberpunk"] .mark { color:var(--cyan); text-shadow:0 0 8px var(--cyan),0 0 18px var(--green); }
+    body[data-theme="cyberpunk"] #terminal { background-image:linear-gradient(90deg,rgba(255,59,212,.04) 1px,transparent 1px),linear-gradient(rgba(45,226,230,.035) 1px,transparent 1px); background-size:32px 100%,100% 4px; }
+    body[data-theme="matrix"] { --bg:#020a05; --panel:#03130a; --panel2:#06200f; --line:#126b32; --text:#b9ffc9; --muted:#4cae65; --green:#00ff66; --cyan:#38ffac; --yellow:#d8ff58; --red:#ff5c75; --glow:rgba(0,255,102,.34); --header:linear-gradient(90deg,#062812,#020b05); background:radial-gradient(circle at 80% 0%,#0c4b23 0,#020a05 45%); }
+    body[data-theme="matrix"] #terminal { background-image:linear-gradient(rgba(0,255,102,.04) 1px,transparent 1px); background-size:100% 4px; }
+    body[data-theme="matrix"] .app { border-radius:3px; }
+    @media (max-width:760px) { body{padding:0;} .app{border-radius:0; min-height:100vh;} main{display:block;} aside{display:none;} header{padding:14px 16px;} #terminal{padding:18px 16px; min-height:calc(100vh - 145px); font-size:13px;} .input-row{padding:12px 16px 15px;} footer{padding:9px 16px;} }
+  </style>
+</head>
+<body>
+  <section class="app">
+    <header>
+      <div class="brand"><div class="mark">▰▰</div><div><h1>MONNIXCODE TERMINAL</h1><div class="sub">HTML edition · v1.0.0 · browser sandbox</div></div></div>
+      <div class="actions"><button id="clearBtn">Clear</button><button id="themeBtn">Theme</button></div>
+    </header>
+    <main>
+      <div class="terminal-wrap">
+        <div id="terminal" tabindex="0" aria-label="Terminal output"></div>
+        <form class="input-row" id="commandForm"><span class="prompt">user@monnixcode:~$</span><input id="command" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Command input"></form>
+      </div>
+      <aside><h2>QUICK COMMANDS</h2><div class="card"><strong>Package manager</strong><div class="chips"><span class="chip" data-cmd="nix help">nix help</span><span class="chip" data-cmd="nix up">nix up</span><span class="chip" data-cmd="nix ls">nix ls</span><span class="chip" data-cmd="nix in git curl">nix in git curl</span></div></div><div class="card"><strong>Keyboard</strong><span>Enter runs a command<br>↑ / ↓ command history<br>Ctrl + L clears the screen</span></div><div class="card"><strong>Browser sandbox</strong><span>Commands are simulated locally. Package state is saved in localStorage; no files or shell access are required.</span></div></aside>
+    </main>
+    <footer><span>GPLv3 · MONNIXCODE HTML</span><span id="status">Ready</span></footer>
+  </section>
+<script>
+(() => {
+  const terminal = document.querySelector('#terminal'), input = document.querySelector('#command'), form = document.querySelector('#commandForm'), status = document.querySelector('#status'), themeBtn = document.querySelector('#themeBtn');
+  const key = 'monnixcode-packages';
+  let packages = JSON.parse(localStorage.getItem(key) || '["base","bash","coreutils"]');
+  let history = JSON.parse(localStorage.getItem('monnixcode-history') || '[]'), historyIndex = history.length;
+  const themes = ['classic', 'cyberpunk', 'matrix'];
+  let themeIndex = Math.max(0, themes.indexOf(localStorage.getItem('monnixcode-theme') || 'classic'));
+  const themeName = name => name.charAt(0).toUpperCase() + name.slice(1);
+  const applyTheme = () => { const theme=themes[themeIndex]; document.body.dataset.theme=theme; themeBtn.textContent='Theme: '+themeName(theme); status.textContent=themeName(theme)+' theme'; localStorage.setItem('monnixcode-theme',theme); };
+  const print = (text='', cls='') => { const el=document.createElement('div'); el.className='line '+cls; el.textContent=text; terminal.appendChild(el); terminal.scrollTop=terminal.scrollHeight; };
+  const prompt = cmd => { const el=document.createElement('div'); el.className='line'; el.innerHTML='<span class="prompt">user@monnixcode:~$</span> <span class="cmd"></span>'; el.querySelector('.cmd').textContent=cmd; terminal.appendChild(el); };
+  const save = () => { localStorage.setItem(key, JSON.stringify(packages)); localStorage.setItem('monnixcode-history', JSON.stringify(history.slice(-50))); };
+  const help = () => { print('MONNIXCODE commands:', 'info'); print('  nix up                 update package lists and upgrade'); print('  nix in <pkg> [...]     install packages'); print('  nix rm <pkg> [...]     remove packages'); print('  nix se <text>          search available packages'); print('  nix ls                 list installed packages'); print('  nix root               open a root shell (demo only)'); print('  nix help               show this help'); print('  clear                  clear the terminal'); print('  neofetch               show system information'); print('  date | pwd | whoami    basic shell commands'); };
+  const run = raw => { const cmd=raw.trim(); if(!cmd) return; prompt(cmd); history.push(cmd); historyIndex=history.length; save(); const a=cmd.split(/\s+/), base=a[0], sub=a[1], args=a.slice(2);
+    if(cmd==='clear' || cmd==='cls'){ terminal.innerHTML=''; return; }
+    if(base==='nix') { if(!sub || sub==='help'){help();return;} if(sub==='up'){ print(':: Synchronizing package databases...', 'info'); setTimeout(()=>{print(':: Packages are up to date. Nothing to upgrade.', 'ok'); status.textContent='Updated';},220); return;} if(sub==='ls'){ print('Installed packages ('+packages.length+'):', 'info'); packages.forEach(p=>print('  '+p,'ok')); return;} if(sub==='in'){ if(!args.length){print('nix in: missing package name','err');return;} const fresh=args.filter(p=>!packages.includes(p)); packages.push(...fresh); save(); print(':: Installing '+args.join(', ')+'...', 'info'); setTimeout(()=>{fresh.length?print(':: Successfully installed: '+fresh.join(', '),'ok'):print(':: All requested packages are already installed.','warn'); status.textContent='Packages: '+packages.length;},220); return;} if(sub==='rm'){ if(!args.length){print('nix rm: missing package name','err');return;} packages=packages.filter(p=>!args.includes(p)||['base','bash','coreutils'].includes(p)); save(); print(':: Removed: '+args.filter(p=>!['base','bash','coreutils'].includes(p)).join(', ')||'nothing','ok'); return;} if(sub==='se'){ const q=args.join(' ').toLowerCase(); const pool=['bash','coreutils','curl','git','grep','nano','nodejs','python','vim','wget','openssh','zip']; print('Searching packages for "'+q+'"...','info'); pool.filter(p=>p.includes(q)).forEach(p=>print('  '+p,'ok')); return;} if(sub==='root'){print('root@monnixcode:~# Root access is unavailable in the browser sandbox.','warn');return;} print('nix: unknown command: '+sub+' (try nix help)','err'); return; }
+    if(base==='help'){help();return;} if(base==='pwd'){print('/home/user','ok');return;} if(base==='whoami'){print('user','ok');return;} if(base==='date'){print(new Date().toString(),'ok');return;} if(base==='uname'){print('MonnixCode HTML 1.0.0 browser-sandbox','ok');return;} if(base==='neofetch'){print('     ▄▄  MONNIXCODE');print('    ████  OS: Browser sandbox');print('   ▄████  Shell: nix');print('  ██████  Packages: '+packages.length);print('  v1.0.0  Terminal: HTML/CSS/JS','info');return;} if(base==='echo'){print(a.slice(1).join(' '));return;} if(base==='ls'){print('README.md  home/  usr/  tmp/','ok');return;} print(base+': command not found. Try "nix help".','err');
+  };
+  const boot=()=>{print('MONNIXCODE terminal · HTML edition','info'); print('A lightweight terminal experience with no Gradle or Android build tools.','muted'); print('Type "nix help" to get started.','ok'); print(''); input.focus();};
+  form.addEventListener('submit',e=>{e.preventDefault();run(input.value);input.value='';});
+  input.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){e.preventDefault();historyIndex=Math.max(0,historyIndex-1);input.value=history[historyIndex]||'';} if(e.key==='ArrowDown'){e.preventDefault();historyIndex=Math.min(history.length,historyIndex+1);input.value=history[historyIndex]||'';} if(e.ctrlKey&&e.key.toLowerCase()==='l'){e.preventDefault();terminal.innerHTML='';}});
+  document.querySelector('#clearBtn').onclick=()=>{terminal.innerHTML='';input.focus();}; themeBtn.onclick=()=>{themeIndex=(themeIndex+1)%themes.length;applyTheme();};
+  document.querySelectorAll('.chip').forEach(x=>x.onclick=()=>{input.value=x.dataset.cmd;input.focus();}); terminal.onclick=()=>input.focus(); applyTheme(); boot();
+})();
+</script>
+</body>
+</html>
