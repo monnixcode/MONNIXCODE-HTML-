@@ -5,14 +5,14 @@ Kotlin Android application for Android 15, 16 and 17+. The app packages the Web 
 ## Platform configuration
 
 - `minSdk = 35` — Android 15
-- `compileSdk = 37` — Android 17
-- `targetSdk = 37` — Android 17 behavior target
+- `compileSdk = 36` — Android 16 SDK; the app runs on Android 15, 16 and 17+
+- `targetSdk = 36` — meets the current Android 16 / Google Play target baseline
 - Java/Kotlin JVM target 17
 - Kotlin + Android Gradle Plugin via Gradle Kotlin DSL
 
 ## Build locally
 
-Install Android Studio with Android SDK Platform 37 and Build Tools 36.0.0, then run from this directory:
+Install Android Studio with Android SDK Platform 36 and Build Tools 35.0.0, then run from this directory:
 
 ```sh
 ./gradlew assembleDebug
@@ -53,7 +53,7 @@ This repository does **not** invent or ship fake shell binaries. A real Termux-c
 Workflow: `.github/workflows/android-release.yml`
 
 - Runs on `v*` tags and manual dispatch.
-- Installs Android 17 SDK.
+- Installs Android SDK Platform 36.
 - Builds debug and release APKs.
 - Uploads both APKs as workflow artifacts.
 - On a version tag, attaches APKs to the GitHub Release.

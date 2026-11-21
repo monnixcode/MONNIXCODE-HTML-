@@ -39,7 +39,7 @@ Folder: /(root)
 ในโฟลเดอร์ [`android-app/`](android-app/) มี Android project ภาษา Kotlin สำหรับ Android 15, 16 และ 17+:
 
 - `minSdk = 35` (Android 15)
-- `compileSdk = 37` และ `targetSdk = 37` (Android 17)
+- `compileSdk = 36` และ `targetSdk = 36` (รันได้บน Android 15, 16, 17+; Android 16 เป็น API 36)
 - ใช้ WebView บรรจุ Web Workspace เดิม
 - ใช้ Android file chooser สำหรับเลือกไฟล์จากมือถือ
 - มี `BootstrapInstaller` และ bootstrap runtime contract แยกไว้ใน `app/src/main/assets/bootstrap/`
