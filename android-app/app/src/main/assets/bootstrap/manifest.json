@@ -1,0 +1,15 @@
+{
+  "name": "monnixcode-bootstrap",
+  "version": "1.0.0-layout",
+  "status": "layout-only",
+  "purpose": "Runtime directory contract for a future native Termux-compatible bootstrap",
+  "abis": ["arm64-v8a", "armeabi-v7a", "x86_64"],
+  "androidMinApi": 35,
+  "requiredFiles": [
+    "usr/bin/sh",
+    "usr/bin/nix",
+    "usr/etc/apt/sources.list",
+    "usr/var/lib/dpkg/status"
+  ],
+  "note": "Replace this manifest package with a verified bootstrap archive built from a matching termux-packages release. No fake binaries are shipped."
+}

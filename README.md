@@ -34,6 +34,38 @@ Folder: /(root)
 
 จากนั้นกด **Save** และรอการ deploy สักครู่
 
+## Android Kotlin application
+
+ในโฟลเดอร์ [`android-app/`](android-app/) มี Android project ภาษา Kotlin สำหรับ Android 15, 16 และ 17+:
+
+- `minSdk = 35` (Android 15)
+- `compileSdk = 37` และ `targetSdk = 37` (Android 17)
+- ใช้ WebView บรรจุ Web Workspace เดิม
+- ใช้ Android file chooser สำหรับเลือกไฟล์จากมือถือ
+- มี `BootstrapInstaller` และ bootstrap runtime contract แยกไว้ใน `app/src/main/assets/bootstrap/`
+- มี GitHub Actions ที่ `.github/workflows/android-release.yml`
+
+Build APK ทดสอบในเครื่อง:
+
+```sh
+cd android-app
+./gradlew assembleDebug
+```
+
+สร้าง GitHub Release พร้อม APK:
+
+```sh
+git add android-app .github/workflows/android-release.yml
+git commit -m "Prepare Android app release"
+git push origin main
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+Workflow จะ build debug/release APK, อัปโหลดเป็น artifact และแนบ APK เข้า Release ของ tag โดยอัตโนมัติ อ่านรายละเอียดที่ [`android-app/README.md`](android-app/README.md)
+
+> Bootstrap ใน project ตอนนี้เป็น runtime contract และ installer layout ที่ตรวจสอบได้ ไม่ใช่การสร้าง binary shell ปลอม หากต้องการ Linux shell เต็มรูปแบบ ต้องเติม bootstrap archive ที่ build จาก `termux-packages` ให้ตรงกับ ABI พร้อม checksum และ license ก่อน
+
 ## ติดตั้งและรันบน Termux
 
 ```sh
