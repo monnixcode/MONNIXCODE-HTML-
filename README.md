@@ -2,6 +2,14 @@
 
 เวอร์ชัน Standalone ของ MONNIXCODE สำหรับเปิดใช้งานบน Browser โดยไม่มี Android project, Java, Gradle หรือ Gradle wrapper เป็นแอป HTML/CSS/JavaScript ที่เปิดผ่าน HTTP server ธรรมดา
 
+## Public online
+
+เมื่อเปิดใช้งาน GitHub Pages แล้ว สามารถเปิดหน้าเว็บสาธารณะได้ที่:
+
+<https://monnixcode.github.io/MONNIXCODE-HTML-/>
+
+หน้า online ใช้ `index.html` จาก branch `main` โดยตรง และไม่ต้องติดตั้งอะไรในเครื่องสำหรับการทดลองหน้าเว็บ
+
 ## ติดตั้งและรันอย่างรวดเร็วบน Termux
 
 ```sh
@@ -39,6 +47,16 @@ http://127.0.0.1:8080
 - การเปลี่ยนธีม Classic, Cyberpunk และ Matrix
 - การแก้ปัญหา port, permission, git และ cache
 - ข้อจำกัดด้าน browser sandbox และความปลอดภัย
+
+## Termux source code
+
+ใน repository นี้มี source code ของ Termux ที่แนบมาเก็บแยกไว้ในโฟลเดอร์ [`termux-source/`](termux-source/) เพื่อใช้เป็น source อ้างอิงหรือพัฒนาต่อฝั่ง Android โดยไม่ปะปนกับ HTML Terminal
+
+- [`TERMUX-SOURCE.md`](TERMUX-SOURCE.md) — อธิบายโครงสร้างและขอบเขตการใช้งาน
+- [`termux-source/README.md`](termux-source/README.md) — คู่มือของ Termux source เดิม
+- [`termux-source/LICENSE.md`](termux-source/LICENSE.md) — license และ notices ของ source เดิม
+
+ส่วน `index.html` ใช้สำหรับ GitHub Pages และไม่ใช้ Gradle ส่วน `termux-source/` เป็น Android source แยกชุด หากจะ build APK ต้องทำตาม dependencies และคำสั่งในเอกสารของ Termux source
 
 ## ธีม Terminal
 
