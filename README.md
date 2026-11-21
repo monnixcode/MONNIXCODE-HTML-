@@ -1,25 +1,40 @@
-# MONNIXCODE HTML Terminal
+# MONNIXCODE Workspace
 
-เวอร์ชัน Standalone ของ MONNIXCODE สำหรับเปิดใช้งานบน Browser โดยไม่มี Android project, Java, Gradle หรือ Gradle wrapper เป็นแอป HTML/CSS/JavaScript ที่เปิดผ่าน HTTP server ธรรมดา
+MONNIXCODE Workspace เป็นหน้าเว็บแบบ standalone สำหรับเปิดบน Browser หรือรันจาก Termux ด้วย Python HTTP server โดยรวม Terminal UI, GitHub public clone และ Mobile File Workspace ไว้ในหน้าเดียว
+
+![MONNIXCODE pixel header](assets/monnixcode-header.png)
+
+## ความสามารถรุ่นปัจจุบัน
+
+- Header แบบ pixel-art ตามภาพ MONNIXCODE ที่แนบมา
+- Terminal UI แบบ responsive สำหรับมือถือและ Desktop
+- ธีม Classic, Cyberpunk และ Matrix
+- `git clone <public GitHub URL>` ใน Browser เพื่อโหลดไฟล์ข้อความขนาดเล็กของ repository สาธารณะมาไว้ใน workspace
+- เลือกไฟล์หลายไฟล์จากมือถือ
+- เลือกทั้งโฟลเดอร์จากมือถือด้วย folder picker ที่ Browser รองรับ
+- Drag-and-drop ไฟล์บน Desktop หรือ Browser ที่รองรับ
+- File browser, preview ไฟล์ข้อความ และสถานะขนาดไฟล์
+- คำสั่งดาวน์โหลด/เปิดไฟล์ผ่าน Browser ตามสิทธิ์ของ Browser
+- เก็บ workspace ชั่วคราวใน session ของหน้าเว็บโดยไม่อัปโหลดอัตโนมัติ
+- มี Termux source code แยกใน [`termux-source/`](termux-source/)
 
 ## Public online
 
-repository นี้เตรียม GitHub Actions workflow สำหรับ deploy แล้ว เมื่อเปิดใช้งาน GitHub Pages แล้ว สามารถเปิดหน้าเว็บสาธารณะได้ที่:
+เมื่อเปิด GitHub Pages สำเร็จ ให้เปิด:
 
 <https://monnixcode.github.io/MONNIXCODE-HTML-/>
 
-หน้า online ใช้ `index.html` จาก branch `main` โดยตรง และไม่ต้องติดตั้งอะไรในเครื่องสำหรับการทดลองหน้าเว็บ
+หาก URL ยังตอบ `404` ให้เข้า **Settings → Pages** แล้วเลือก:
 
-### เปิด Pages ครั้งแรก
+```text
+Source: Deploy from a branch
+Branch: main
+Folder: /(root)
+```
 
-1. เข้าแท็บ **Settings** ของ repository
-2. เปิดเมนู **Pages** ในหัวข้อ **Code and automation**
-3. ใน **Build and deployment** เลือก **Source: GitHub Actions**
-4. กลับไปแท็บ **Actions** และรอ workflow `Deploy MONNIXCODE HTML to GitHub Pages` ทำงานจนสำเร็จ
+จากนั้นกด **Save** และรอการ deploy สักครู่
 
-หลัง deploy สำเร็จ ให้เปิด URL ด้านบน หากยังไม่แสดงผลให้รอการกระจาย cache สักครู่แล้ว refresh ใหม่
-
-## ติดตั้งและรันอย่างรวดเร็วบน Termux
+## ติดตั้งและรันบน Termux
 
 ```sh
 pkg update && pkg upgrade -y
@@ -30,63 +45,57 @@ chmod +x run.sh
 ./run.sh
 ```
 
-จากนั้นเปิดใน Browser:
+เปิด Browser บนมือถือที่:
 
 ```text
 http://127.0.0.1:8080
 ```
 
-หากต้องการใช้พอร์ตอื่น:
+ใช้ port อื่นได้:
 
 ```sh
 ./run.sh 3000
 ```
 
-แล้วเปิด `http://127.0.0.1:3000`
+อ่านคู่มือเต็มที่ [TERMUX-GUIDE.md](TERMUX-GUIDE.md)
 
-## คู่มือ Termux แบบละเอียด
+## การใช้งาน GitHub clone ในหน้าเว็บ
 
-อ่านคู่มือฉบับเต็มได้ที่ [TERMUX-GUIDE.md](TERMUX-GUIDE.md) ซึ่งครอบคลุม:
-
-- การติดตั้ง Termux, Git และ Python
-- การ clone และอัปเดตโปรเจกต์จาก GitHub
-- การรันด้วย `run.sh` และ `python -m http.server`
-- การรันแบบเบื้องหลังและการหยุดเซิร์ฟเวอร์
-- การใช้งานคำสั่ง `nix` และ keyboard shortcuts
-- การเปลี่ยนธีม Classic, Cyberpunk และ Matrix
-- การแก้ปัญหา port, permission, git และ cache
-- ข้อจำกัดด้าน browser sandbox และความปลอดภัย
-
-## Termux source code
-
-ใน repository นี้มี source code ของ Termux ที่แนบมาเก็บแยกไว้ในโฟลเดอร์ [`termux-source/`](termux-source/) เพื่อใช้เป็น source อ้างอิงหรือพัฒนาต่อฝั่ง Android โดยไม่ปะปนกับ HTML Terminal
-
-- [`TERMUX-SOURCE.md`](TERMUX-SOURCE.md) — อธิบายโครงสร้างและขอบเขตการใช้งาน
-- [`termux-source/README.md`](termux-source/README.md) — คู่มือของ Termux source เดิม
-- [`termux-source/LICENSE.md`](termux-source/LICENSE.md) — license และ notices ของ source เดิม
-
-ส่วน `index.html` ใช้สำหรับ GitHub Pages และไม่ใช้ Gradle ส่วน `termux-source/` เป็น Android source แยกชุด หากจะ build APK ต้องทำตาม dependencies และคำสั่งในเอกสารของ Termux source
-
-## ธีม Terminal
-
-กดปุ่ม Theme เพื่อวนเปลี่ยนธีม:
-
-- **Classic** — สีเขียวแบบ Terminal ดั้งเดิม พร้อม scanline
-- **Cyberpunk** — neon magenta/cyan, grid และ glow
-- **Matrix** — สีเขียวเข้มแบบ Matrix พร้อม scanline หนาแน่น
-
-ธีมที่เลือกจะถูกบันทึกใน browser และเปิดกลับมาใช้ธีมเดิมในครั้งถัดไป
-
-## คำสั่งที่รองรับในหน้าเว็บ
+พิมพ์ใน Terminal:
 
 ```sh
-nix help
-nix up
-nix in git curl
-nix rm git
-nix se python
-nix ls
-nix root
+git clone https://github.com/monnixcode/MONNIXCODE-HTML-.git
+```
+
+หรือใส่ URL ในกล่อง **GitHub public clone** แล้วกด `Clone`
+
+ระบบจะเรียก GitHub API และโหลดเฉพาะไฟล์ข้อความ/ซอร์สขนาดไม่เกิน 200 KB ต่อไฟล์ สูงสุด 80 ไฟล์ มาไว้ใน `Files / Folders` เพื่อ preview ใน Browser เหมาะสำหรับดู source, README และไฟล์ config แบบสาธารณะ
+
+คำสั่งที่เกี่ยวข้อง:
+
+```sh
+git help
+git status
+ls
+open README.md
+```
+
+> นี่เป็น browser-compatible clone สำหรับอ่านไฟล์ ไม่ใช่ Git client เต็มรูปแบบ และไม่รองรับ private repository, push, commit, branch, merge หรือการรันคำสั่งบนเครื่อง
+
+## การใช้ไฟล์และโฟลเดอร์มือถือ
+
+1. เปิดแท็บ `Files / Folders`
+2. กด `Choose files` เพื่อเลือกหลายไฟล์
+3. กด `Choose folder` เพื่อเลือกทั้งโฟลเดอร์ หาก Browser รองรับ
+4. หรือวางไฟล์ลงในพื้นที่ `Drop files here`
+5. แตะชื่อไฟล์เพื่อ preview
+
+Browser จะขอสิทธิ์เฉพาะรายการที่ผู้ใช้เลือก ไม่สามารถเปิดอ่านทุกโฟลเดอร์ในมือถือโดยอัตโนมัติ และไฟล์จะอยู่เฉพาะใน session ของ Browser
+
+## คำสั่งใน Terminal
+
+```sh
+help
 clear
 pwd
 whoami
@@ -95,13 +104,53 @@ uname
 neofetch
 echo hello
 ls
+git clone <public GitHub URL>
+git status
+git help
+nix help
+nix up
+nix in git curl
+nix rm git
+nix ls
 ```
 
-คำสั่งเหล่านี้เป็นการจำลองภายใน JavaScript ไม่ได้รัน shell จริง ไม่สามารถใช้ `apt`, `pkg`, `sudo` หรือติดตั้งแพ็กเกจลง Android ได้ หากต้องการรันคำสั่ง Linux จริง ให้พิมพ์ใน Termux โดยตรง
+## ข้อจำกัดสำคัญ
 
-## ไฟล์หลัก
+หน้าเว็บไม่สามารถรัน Linux shell จริงหรือทำงานกับไฟล์ทั้งหมดในมือถือโดยไม่มีการเลือกจากผู้ใช้ได้ เนื่องจากข้อจำกัดความปลอดภัยของ Browser ดังนั้นคำสั่งต่อไปนี้ต้องรันในแอป Termux จริง:
 
-- `index.html` — หน้า Terminal และ logic ทั้งหมด
-- `run.sh` — สคริปต์เปิด Python HTTP server
-- `TERMUX-GUIDE.md` — คู่มือการติดตั้งและใช้งาน Termux แบบละเอียด
-- `LICENSE.md` — ข้อมูลลิขสิทธิ์
+```sh
+apt
+pkg
+sudo
+bash
+python
+node
+make
+git clone <any repository>
+git commit
+git push
+```
+
+สำหรับการใช้คำสั่งได้เต็มรูปแบบ ให้เปิด Termux แล้วใช้ source จาก repository นี้:
+
+```sh
+cd ~
+git clone https://github.com/monnixcode/MONNIXCODE-HTML-.git
+cd MONNIXCODE-HTML-
+```
+
+จากนั้นใช้คำสั่ง Linux จริงใน Termux โดยตรง ไม่ใช่ช่อง Terminal ใน Browser
+
+## โครงสร้างไฟล์
+
+- `index.html` — Web Terminal + GitHub clone + Mobile File Workspace
+- `assets/monnixcode-header.png` — pixel-art header จากภาพที่ผู้ใช้แนบ
+- `run.sh` — เปิด Python HTTP server
+- `TERMUX-GUIDE.md` — คู่มือติดตั้งและใช้งาน Termux
+- `TERMUX-SOURCE.md` — คำอธิบายการรวม Termux source
+- `termux-source/` — Android/Termux source code แยกชุด
+- `.github/workflows/pages.yml` — workflow สำหรับ GitHub Pages
+
+## License
+
+MONNIXCODE HTML edition ใช้ GPLv3 ตามไฟล์ [LICENSE.md](LICENSE.md) โปรดรักษา license และ notices ของ source ใน `termux-source/` ตาม [termux-source/LICENSE.md](termux-source/LICENSE.md)
