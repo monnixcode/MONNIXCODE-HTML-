@@ -4,11 +4,20 @@
 
 ## Public online
 
-เมื่อเปิดใช้งาน GitHub Pages แล้ว สามารถเปิดหน้าเว็บสาธารณะได้ที่:
+repository นี้เตรียม GitHub Actions workflow สำหรับ deploy แล้ว เมื่อเปิดใช้งาน GitHub Pages แล้ว สามารถเปิดหน้าเว็บสาธารณะได้ที่:
 
 <https://monnixcode.github.io/MONNIXCODE-HTML-/>
 
 หน้า online ใช้ `index.html` จาก branch `main` โดยตรง และไม่ต้องติดตั้งอะไรในเครื่องสำหรับการทดลองหน้าเว็บ
+
+### เปิด Pages ครั้งแรก
+
+1. เข้าแท็บ **Settings** ของ repository
+2. เปิดเมนู **Pages** ในหัวข้อ **Code and automation**
+3. ใน **Build and deployment** เลือก **Source: GitHub Actions**
+4. กลับไปแท็บ **Actions** และรอ workflow `Deploy MONNIXCODE HTML to GitHub Pages` ทำงานจนสำเร็จ
+
+หลัง deploy สำเร็จ ให้เปิด URL ด้านบน หากยังไม่แสดงผลให้รอการกระจาย cache สักครู่แล้ว refresh ใหม่
 
 ## ติดตั้งและรันอย่างรวดเร็วบน Termux
 
