@@ -36,6 +36,18 @@ The app can fully manage its own runtime directory without `su`, Magisk, bootloa
 
 This is intentional and is what makes the design suitable for non-root devices.
 
+## Notifications and NIX Storage
+
+The app declares `POST_NOTIFICATIONS` and requests it at runtime on Android 13 and newer. Users can deny it without affecting the terminal or Bootstrap runtime.
+
+The Files panel includes **NIX Storage**. If access has not been granted, it opens the Android system settings page for `MANAGE_EXTERNAL_STORAGE`. After the user explicitly enables access, the app creates and uses:
+
+```text
+/storage/emulated/0/NIX/
+```
+
+This is an Android-managed special access permission, not device root. Android and Google Play policy restrict this permission to eligible use cases, so the app must explain why it needs broad file management and users can revoke it at any time. Without it, the app continues to use app-private storage and Android's document picker.
+
 ## Native PTY architecture
 
 ```text
@@ -163,7 +175,7 @@ It installs the Android SDK, NDK, and CMake, then builds debug and release APKs.
 
 Current native PTY release:
 
-- planned tag: `v1.2.0`
+- planned tag: `v1.2.1`
 - embedded Bootstrap release: `bootstrap-2026.11.15-r1+apt.android-7`
 
 ## Troubleshooting

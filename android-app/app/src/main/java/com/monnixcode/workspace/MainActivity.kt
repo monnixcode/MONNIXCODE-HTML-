@@ -6,6 +6,9 @@ import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.os.Build
+import android.os.Environment
+import android.provider.Settings
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
@@ -28,6 +31,7 @@ class MainActivity : Activity() {
     private lateinit var terminalPanel: View
     private lateinit var filesPanel: View
     private lateinit var themeButton: Button
+    private lateinit var nixStorageButton: Button
     private val selectedFiles = linkedMapOf<String, Uri>()
     private val filePickerRequest = 4101
     private var nativeShell: NativeShellSession? = null
@@ -46,6 +50,7 @@ class MainActivity : Activity() {
         printLine("MONNIXCODE NATIVE WORKSPACE", "info")
         printLine("Native Android UI · WebView disabled", "muted")
         printLine("Type help or use the buttons below. Runtime is app-private; device root is not required.", "ok")
+        requestNotificationPermissionIfNeeded()
     }
 
     private fun buildNativeUi() {
@@ -146,6 +151,8 @@ class MainActivity : Activity() {
         }
         val actions = horizontalRow(theme.background)
         actions.addView(button("Choose files", theme.accent) { chooseFiles() }, weightButton())
+        nixStorageButton = button("NIX Storage", theme.accent) { openNixStorageSettings() }
+        actions.addView(nixStorageButton, weightButton())
         actions.addView(button("Clear", theme.accent) {
             selectedFiles.clear()
             renderFiles()
@@ -161,7 +168,41 @@ class MainActivity : Activity() {
         previewOutput = label("เลือกไฟล์เพื่อดู preview", 11f, Color.rgb(203, 211, 223))
         previewOutput.setPadding(dp(10), dp(10), dp(10), dp(10))
         panel.addView(previewOutput, LinearLayout.LayoutParams(-1, dp(150)))
+        updateNixStorageButton()
         return panel
+    }
+
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission("android.permission.POST_NOTIFICATIONS") !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), 7101)
+        }
+    }
+
+    private fun hasNixStorageAccess(): Boolean =
+        Build.VERSION.SDK_INT < 30 || Environment.isExternalStorageManager()
+
+    private fun openNixStorageSettings() {
+        if (hasNixStorageAccess()) {
+            val nixRoot = File(Environment.getExternalStorageDirectory(), "NIX")
+            nixRoot.mkdirs()
+            Toast.makeText(this, "NIX storage ready: ${nixRoot.path}", Toast.LENGTH_LONG).show()
+            return
+        }
+        try {
+            startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                data = Uri.parse("package:$packageName")
+            })
+        } catch (_: Exception) {
+            startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+        }
+    }
+
+    private fun updateNixStorageButton() {
+        if (!::nixStorageButton.isInitialized) return
+        nixStorageButton.text = if (hasNixStorageAccess()) "NIX Storage: ready" else "NIX Storage: allow"
     }
 
     private fun executeCommand() {
@@ -306,6 +347,7 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        updateNixStorageButton()
         if (::terminalOutput.isInitialized) startNativeShellIfAvailable()
     }
 

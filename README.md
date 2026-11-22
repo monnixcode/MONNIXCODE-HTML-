@@ -23,6 +23,7 @@ The Android app is the primary path for Termux-like terminal behavior.
 - Secure extraction with path traversal and unsafe symlink checks.
 - Staging, validation, atomic activation, and rollback.
 - Native file selection through Android Storage Access Framework.
+- Optional Android 13+ notification permission and explicit NIX Storage all-files access flow.
 - Classic, Cyberpunk, and Matrix themes.
 - Android 15+ baseline with standard Android/NDK APIs rather than vendor-specific APIs.
 
@@ -46,6 +47,8 @@ Inside this directory the shell can behave like a Termux-style user-space enviro
 It is **not** Android system root. The app cannot automatically access `/data` belonging to other apps, alter `/system`, change SELinux policy, mount arbitrary filesystems, or grant itself privileged permissions. Access to shared files is provided through Android’s file picker and only for locations selected by the user.
 
 This design avoids requiring a rooted phone and is the portable option across standard Android devices.
+
+The Files panel can open Android settings for the optional `MANAGE_EXTERNAL_STORAGE` special access and create `/storage/emulated/0/NIX/` after the user grants it. This is not system root, is revocable, and may be restricted by Android/Google Play policy. Without it, the app continues to work with app-private storage and the standard document picker.
 
 ## Embedded Bootstrap installation
 
@@ -118,7 +121,7 @@ The workflow:
 - uploads APK artifacts;
 - attaches APKs to the GitHub Release for the tag.
 
-The embedded Bootstrap release is prepared as `v1.2.0`.
+The embedded Bootstrap release is prepared as `v1.2.1`.
 
 ## Browser workspace
 
