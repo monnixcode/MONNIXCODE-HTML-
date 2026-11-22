@@ -1,5 +1,3 @@
-import org.gradle.api.tasks.Copy
-
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -42,11 +40,3 @@ dependencies {
     implementation("org.apache.commons:commons-compress:1.27.1")
     implementation("org.tukaani:xz:1.10")
 }
-
-val syncWebAssets = tasks.register<Copy>("syncWebAssets") {
-    from(rootProject.file("../index.html"))
-    into(layout.projectDirectory.dir("src/main/assets/web"))
-    from(rootProject.file("../assets")) { into("assets") }
-}
-
-tasks.named("preBuild") { dependsOn(syncWebAssets) }
