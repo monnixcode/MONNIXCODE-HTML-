@@ -40,7 +40,7 @@ Folder: /(root)
 
 - `minSdk = 35` (Android 15)
 - `compileSdk = 36` และ `targetSdk = 36` (รันได้บน Android 15, 16, 17+; Android 16 เป็น API 36)
-- ใช้ WebView บรรจุ Web Workspace เดิม
+- Android app ใช้ native Kotlin UI สำหรับ Terminal และ Files / Folders; Web Workspace ยังใช้แยกผ่าน GitHub Pages หรือ Browser
 - ใช้ Android file chooser สำหรับเลือกไฟล์จากมือถือ
 - มี Bootstrap Activity สำหรับเลือก `tar.xz`, ตรวจ SHA-256 และดู progress การติดตั้งแบบ atomic
 - มี `BootstrapInstaller` และ bootstrap runtime contract แยกไว้ใน `app/src/main/assets/bootstrap/`

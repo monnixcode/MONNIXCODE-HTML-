@@ -1,12 +1,13 @@
 # MONNIXCODE Workspace Android app
 
-Kotlin Android application for Android 15, 16 and 17+. The app packages the Web Workspace inside a WebView and provides the Android file chooser for the HTML file input.
+Kotlin Android application for Android 15, 16 and 17+. The Android app uses a native Kotlin workspace UI; the Web Workspace remains available separately through GitHub Pages and Termux.
 
 ## Platform configuration
 
 - `minSdk = 35` — Android 15
 - `compileSdk = 36` — Android 16 SDK; the app runs on Android 15, 16 and 17+
 - `targetSdk = 36` — meets the current Android 16 / Google Play target baseline
+- `MainActivity` — native terminal/files workspace with no WebView or right-edge WebView scrollbar
 - `BootstrapActivity` — native UI for selecting an archive, entering SHA-256 and tracking installation progress
 - Java/Kotlin JVM target 17
 - Kotlin + Android Gradle Plugin via Gradle Kotlin DSL
