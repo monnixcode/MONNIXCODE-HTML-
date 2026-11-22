@@ -20,7 +20,7 @@
 <section class="app">
   <header>
     <div class="hero"><img src="assets/monnixcode-header.png" alt="MONNIXCODE pixel-art header"></div>
-    <div class="toolbar"><div class="brand"><b>MONNIXCODE WORKSPACE</b> · web terminal + mobile files</div><div class="actions"><span class="status"><i class="dot"></i> browser ready</span><button id="themeBtn">Theme: Classic</button><button id="clearBtn">Clear</button></div></div>
+    <div class="toolbar"><div class="brand"><b>MONNIXCODE WORKSPACE</b> · web terminal + mobile files</div><div class="actions"><span class="status"><i class="dot"></i> browser ready</span><button id="bootstrapBtn" style="display:none">Bootstrap</button><button id="themeBtn">Theme: Classic</button><button id="clearBtn">Clear</button></div></div>
   </header>
   <div class="tabs"><button class="tab active" data-view="terminalView">Terminal</button><button class="tab" data-view="filesView">Files / Folders</button></div>
   <main>
@@ -55,7 +55,7 @@
   $('#clearBtn').onclick=()=>{terminal.innerHTML='';input.focus();};$('#themeBtn').onclick=()=>{themeIndex=(themeIndex+1)%themes.length;setTheme();};document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>switchView(t.dataset.view));document.querySelectorAll('.chip').forEach(x=>x.onclick=()=>{switchView('terminalView');input.value=x.dataset.cmd;input.focus();});
   $('#pickFiles').onclick=()=>$('#fileInput').click();$('#pickFolder').onclick=()=>$('#folderInput').click();$('#downloadFile').onclick=downloadSelected;$('#fileInput').onchange=e=>addFiles(e.target.files);$('#folderInput').onchange=e=>addFiles(e.target.files);$('#clearFiles').onclick=()=>{workspace.clear();selectedFile='';renderFiles();preview.textContent='เลือกไฟล์เพื่อดู preview';status.textContent='Workspace cleared';};
   ['dragenter','dragover'].forEach(n=>dropzone.addEventListener(n,e=>{e.preventDefault();dropzone.classList.add('drag');}));['dragleave','drop'].forEach(n=>dropzone.addEventListener(n,e=>{e.preventDefault();dropzone.classList.remove('drag');}));dropzone.ondrop=e=>addFiles(e.dataTransfer.files);
-  $('#cloneBtn').onclick=()=>cloneRepo($('#repoUrl').value);$('#repoUrl').onkeydown=e=>{if(e.key==='Enter')cloneRepo(e.target.value);};setTheme();renderFiles();boot();
+  $('#cloneBtn').onclick=()=>cloneRepo($('#repoUrl').value);$('#repoUrl').onkeydown=e=>{if(e.key==='Enter')cloneRepo(e.target.value);};const bootstrapBtn=$('#bootstrapBtn');if(window.MonnixAndroid&&typeof window.MonnixAndroid.openBootstrapInstaller==='function'){bootstrapBtn.style.display='inline-block';bootstrapBtn.onclick=()=>window.MonnixAndroid.openBootstrapInstaller();}setTheme();renderFiles();boot();
 })();
 </script>
 </body>

@@ -30,6 +30,12 @@ object BootstrapInstaller {
     private const val MAX_ENTRY_COUNT = 100_000
     private const val COPY_BUFFER_SIZE = 64 * 1024
 
+    data class InstallProgress(
+        val percent: Int,
+        val phase: String,
+        val message: String
+    )
+
     /**
      * Preserves the current layout-only behavior for first launch.
      * Use [installArchive] or [installAsset] to install a real bootstrap.
@@ -65,7 +71,8 @@ object BootstrapInstaller {
         context: Context,
         archive: File,
         expectedSha256: String,
-        requiredFiles: Collection<String> = DEFAULT_REQUIRED_FILES
+        requiredFiles: Collection<String> = DEFAULT_REQUIRED_FILES,
+        onProgress: (InstallProgress) -> Unit = {}
     ) {
         require(archive.isFile) { "Bootstrap archive does not exist: ${archive.path}" }
         val normalizedExpected = normalizeSha256(expectedSha256)
@@ -73,7 +80,10 @@ object BootstrapInstaller {
             "expectedSha256 must be a 64-character hexadecimal SHA-256 digest"
         }
 
-        val actual = sha256(archive)
+        onProgress(InstallProgress(0, "verify", "กำลังตรวจสอบ SHA-256…"))
+        val actual = sha256(archive) { percent ->
+            onProgress(InstallProgress(percent.coerceIn(1, 20), "verify", "กำลังคำนวณ SHA-256…"))
+        }
         if (!MessageDigest.isEqual(
                 normalizedExpected.toByteArray(StandardCharsets.US_ASCII),
                 actual.toByteArray(StandardCharsets.US_ASCII)
@@ -82,7 +92,8 @@ object BootstrapInstaller {
             throw SecurityException("Bootstrap SHA-256 mismatch")
         }
 
-        installVerifiedStream(context, FileInputStream(archive), actual, requiredFiles)
+        onProgress(InstallProgress(25, "verify", "ตรวจสอบ SHA-256 ผ่านแล้ว"))
+        installVerifiedStream(context, FileInputStream(archive), actual, requiredFiles, onProgress)
     }
 
     /**
@@ -95,7 +106,8 @@ object BootstrapInstaller {
         context: Context,
         assetPath: String,
         expectedSha256: String,
-        requiredFiles: Collection<String> = DEFAULT_REQUIRED_FILES
+        requiredFiles: Collection<String> = DEFAULT_REQUIRED_FILES,
+        onProgress: (InstallProgress) -> Unit = {}
     ) {
         val cacheDir = File(context.cacheDir, "bootstrap-downloads").apply { mkdirs() }
         val temporary = File(cacheDir, "${UUID.randomUUID()}.tar.xz")
@@ -103,7 +115,7 @@ object BootstrapInstaller {
             context.assets.open(assetPath).use { input ->
                 FileOutputStream(temporary).use { output -> input.copyTo(output) }
             }
-            installArchive(context, temporary, expectedSha256, requiredFiles)
+            installArchive(context, temporary, expectedSha256, requiredFiles, onProgress)
         } finally {
             temporary.delete()
         }
@@ -126,7 +138,8 @@ object BootstrapInstaller {
         context: Context,
         source: InputStream,
         sha256: String,
-        requiredFiles: Collection<String>
+        requiredFiles: Collection<String>,
+        onProgress: (InstallProgress) -> Unit
     ) {
         val runtimeParent = context.filesDir
         val target = runtimeRoot(context)
@@ -137,7 +150,9 @@ object BootstrapInstaller {
 
         try {
             staging.mkdirs()
-            extractTarXz(source, staging)
+            onProgress(InstallProgress(30, "extract", "กำลังแตกไฟล์ tar.xz…"))
+            extractTarXz(source, staging, onProgress)
+            onProgress(InstallProgress(88, "validate", "กำลังตรวจสอบไฟล์ bootstrap…"))
             validateRequiredFiles(staging, requiredFiles)
             File(staging, INSTALL_MARKER).apply {
                 parentFile?.mkdirs()
@@ -150,6 +165,7 @@ object BootstrapInstaller {
                     "}\n",
                 StandardCharsets.UTF_8
             )
+            onProgress(InstallProgress(94, "activate", "กำลังเปิดใช้งาน runtime แบบ atomic…"))
 
             // renameTo is atomic when source and destination are on the same filesystem.
             if (target.exists() && !target.renameTo(backup)) {
@@ -161,6 +177,7 @@ object BootstrapInstaller {
                 throw IOException("Could not atomically activate the new bootstrap")
             }
             installed = true
+            onProgress(InstallProgress(100, "complete", "ติดตั้ง Bootstrap สำเร็จ"))
         } finally {
             source.close()
             if (!installed) staging.deleteRecursively()
@@ -169,7 +186,11 @@ object BootstrapInstaller {
         }
     }
 
-    private fun extractTarXz(source: InputStream, destination: File) {
+    private fun extractTarXz(
+        source: InputStream,
+        destination: File,
+        onProgress: (InstallProgress) -> Unit
+    ) {
         XZInputStream(BufferedInputStream(source, COPY_BUFFER_SIZE)).use { xz ->
             TarArchiveInputStream(BufferedInputStream(xz, COPY_BUFFER_SIZE)).use { tar ->
                 var entries = 0
@@ -179,6 +200,13 @@ object BootstrapInstaller {
                         throw SecurityException("Bootstrap archive contains too many entries")
                     }
                     val output = securePath(destination, entry.name)
+                    onProgress(
+                        InstallProgress(
+                            (30 + (entries.coerceAtMost(58))),
+                            "extract",
+                            "กำลังแตกไฟล์: ${entry.name}"
+                        )
+                    )
                     when {
                         entry.isDirectory -> {
                             output.mkdirs()
@@ -265,14 +293,18 @@ object BootstrapInstaller {
         }
     }
 
-    private fun sha256(file: File): String {
+    private fun sha256(file: File, onProgress: (Int) -> Unit = {}): String {
         val digest = MessageDigest.getInstance("SHA-256")
+        val total = file.length().coerceAtLeast(1L)
+        var processed = 0L
         FileInputStream(file).use { input ->
             val buffer = ByteArray(COPY_BUFFER_SIZE)
             while (true) {
                 val count = input.read(buffer)
                 if (count < 0) break
                 digest.update(buffer, 0, count)
+                processed += count
+                onProgress(((processed * 100L) / total).toInt().coerceIn(0, 100))
             }
         }
         return digest.digest().joinToString("") { "%02x".format(it) }

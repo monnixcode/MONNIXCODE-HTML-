@@ -7,6 +7,7 @@ Kotlin Android application for Android 15, 16 and 17+. The app packages the Web 
 - `minSdk = 35` — Android 15
 - `compileSdk = 36` — Android 16 SDK; the app runs on Android 15, 16 and 17+
 - `targetSdk = 36` — meets the current Android 16 / Google Play target baseline
+- `BootstrapActivity` — native UI for selecting an archive, entering SHA-256 and tracking installation progress
 - Java/Kotlin JVM target 17
 - Kotlin + Android Gradle Plugin via Gradle Kotlin DSL
 
@@ -60,6 +61,8 @@ BootstrapInstaller.installArchive(
 ```
 
 The installer verifies SHA-256 before extraction, reads `tar.xz` using Apache Commons Compress and Tukaani XZ, rejects unsafe paths and escaping symlinks, validates required files, and switches the staging directory into `files/monnixcode-runtime/` only after the installation is complete. It also records `bootstrap-install.json` with the verified digest. Add the archive and its real checksum to the ABI-specific manifest before enabling this path in production.
+
+When the app is running, the **Bootstrap** button in the Web Workspace opens `BootstrapActivity`. The screen lets the user choose a `.tar.xz` file, enter its 64-character SHA-256 digest, and observe verification, extraction, validation and atomic activation stages. The button is hidden in the ordinary browser version because the native Android bridge is not available there.
 
 ## GitHub Actions
 

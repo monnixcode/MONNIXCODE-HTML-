@@ -67,6 +67,11 @@ class MainActivity : Activity() {
         fun showToast(message: String) {
             runOnUiThread { Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show() }
         }
+
+        @JavascriptInterface
+        fun openBootstrapInstaller() {
+            startActivity(Intent(this@MainActivity, BootstrapActivity::class.java))
+        }
     }
 
     @Deprecated("Use Activity Result APIs when this project gains a larger native surface")
