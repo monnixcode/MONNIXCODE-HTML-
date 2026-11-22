@@ -48,6 +48,19 @@ files/monnixcode-runtime/
 
 This repository does **not** invent or ship fake shell binaries. A real Termux-compatible Linux bootstrap must be built from a matching `termux-packages` release for each ABI, with checksums, package metadata and licenses. Until those archives are added, the native app is the Web Workspace; full Linux commands run in the Termux source/app separately.
 
+`BootstrapInstaller` now provides the verified installation path for a real archive. After downloading an ABI-matched archive into the app-private storage, call it from a controlled installation flow:
+
+```kotlin
+BootstrapInstaller.installArchive(
+    context = this,
+    archive = downloadedArchive,
+    expectedSha256 = manifestSha256,
+    requiredFiles = listOf("usr/bin/sh", "usr/etc")
+)
+```
+
+The installer verifies SHA-256 before extraction, reads `tar.xz` using Apache Commons Compress and Tukaani XZ, rejects unsafe paths and escaping symlinks, validates required files, and switches the staging directory into `files/monnixcode-runtime/` only after the installation is complete. It also records `bootstrap-install.json` with the verified digest. Add the archive and its real checksum to the ABI-specific manifest before enabling this path in production.
+
 ## GitHub Actions
 
 Workflow: `.github/workflows/android-release.yml`

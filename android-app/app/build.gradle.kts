@@ -38,6 +38,11 @@ android {
     }
 }
 
+dependencies {
+    implementation("org.apache.commons:commons-compress:1.27.1")
+    implementation("org.tukaani:xz:1.10")
+}
+
 val syncWebAssets = tasks.register<Copy>("syncWebAssets") {
     from(rootProject.file("../index.html"))
     into(layout.projectDirectory.dir("src/main/assets/web"))
