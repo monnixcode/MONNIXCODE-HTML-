@@ -35,6 +35,7 @@ class MainActivity : Activity() {
     private val selectedFiles = linkedMapOf<String, Uri>()
     private val filePickerRequest = 4101
     private var nativeShell: NativeShellSession? = null
+    @Volatile private var bootstrapInstallStarted = false
     private val themes = listOf(
         Theme("Classic", Color.rgb(11, 14, 19), Color.rgb(230, 232, 237), Color.rgb(99, 217, 255)),
         Theme("Cyberpunk", Color.rgb(16, 9, 26), Color.rgb(249, 234, 255), Color.rgb(255, 59, 212)),
@@ -44,13 +45,37 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        BootstrapInstaller.install(this)
         buildNativeUi()
-        startNativeShellIfAvailable()
         printLine("MONNIXCODE NATIVE WORKSPACE", "info")
         printLine("Native Android UI · WebView disabled", "muted")
         printLine("Type help or use the buttons below. Runtime is app-private; device root is not required.", "ok")
         requestNotificationPermissionIfNeeded()
+        startBootstrapInstallInBackground()
+    }
+
+    private fun startBootstrapInstallInBackground() {
+        if (bootstrapInstallStarted || BootstrapInstaller.status(this) == "verified") {
+            startNativeShellIfAvailable()
+            return
+        }
+        bootstrapInstallStarted = true
+        printLine("Installing embedded Bootstrap in the background…", "info")
+        Thread {
+            try {
+                BootstrapInstaller.install(this)
+                runOnUiThread {
+                    printLine("Embedded Bootstrap status: ${BootstrapInstaller.status(this)}", "ok")
+                    startNativeShellIfAvailable()
+                }
+            } catch (error: Throwable) {
+                runOnUiThread {
+                    printLine(
+                        "Bootstrap install failed; Terminal remains available: ${error.message ?: error.javaClass.simpleName}",
+                        "warn"
+                    )
+                }
+            }
+        }.start()
     }
 
     private fun buildNativeUi() {
