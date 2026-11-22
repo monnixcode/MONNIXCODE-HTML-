@@ -186,13 +186,31 @@ Useful options:
 
 ## GitHub Actions
 
-Workflow:
+Workflows:
 
 ```text
 ../.github/workflows/android-release.yml
+../.github/workflows/android-emulator-bootstrap.yml
 ```
 
-It installs the Android SDK, NDK, and CMake, then builds debug and release APKs. Tags matching `v*` also receive APK assets in the corresponding GitHub Release.
+The release workflow installs the Android SDK, NDK, and CMake, then builds debug and release APKs. Tags matching `v*` also receive APK assets in the corresponding GitHub Release.
+
+The emulator workflow runs on pushes to `main`, pull requests that change the Android app or Bootstrap test, and manual `workflow_dispatch`. It builds a debuggable APK, starts an API 35 x86_64 Google APIs emulator, clears only this app's data to simulate first launch, and runs:
+
+```sh
+./scripts/test-bootstrap-emulator.sh --wait 90
+```
+
+The CI test fails if the APK cannot be installed, `MainActivity` does not remain alive, a fatal Android exception or process death appears in Logcat, the background installer does not create `files/monnixcode-runtime/bootstrap-install.json`, `usr/bin/sh` is not executable, or the completion log is missing. The workflow uploads the filtered Logcat and debug APK as artifacts even when the test fails.
+
+Run the same test locally when an emulator or USB-debugging device is available:
+
+```sh
+./android-app/gradlew -p android-app assembleDebug
+./scripts/test-bootstrap-emulator.sh --serial emulator-5554 --wait 90
+```
+
+Unlike `check-bootstrap-background.sh`, this CI-oriented script always clears the target app data because a clean first launch is the behavior under test. It requires a debuggable APK so Android `run-as` can inspect the private runtime. The API 35 x86_64 emulator validates one AOSP-like ABI/runtime combination; it does not replace tests on physical devices, OEM builds, or the arm64-v8a/armeabi-v7a archives.
 
 Current native PTY release:
 
