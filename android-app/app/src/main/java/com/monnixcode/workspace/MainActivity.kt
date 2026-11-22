@@ -274,8 +274,7 @@ class MainActivity : Activity() {
         textSize = 11f
         setTextColor(Color.WHITE)
         setOnClickListener { action() }
-        backgroundTintList = android.content.res.ColorStateList.valueOf(Color.rgb(31, 39, 51))
-        stateListAnimator = null
+        setBackgroundColor(Color.rgb(31, 39, 51))
     }
 
     private fun label(text: String, size: Float, color: Int) = TextView(this).apply {
