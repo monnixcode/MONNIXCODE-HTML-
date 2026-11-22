@@ -15,6 +15,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import java.io.File
 import java.text.DateFormat
 import java.util.Date
 
@@ -29,6 +30,7 @@ class MainActivity : Activity() {
     private lateinit var themeButton: Button
     private val selectedFiles = linkedMapOf<String, Uri>()
     private val filePickerRequest = 4101
+    private var nativeShell: NativeShellSession? = null
     private val themes = listOf(
         Theme("Classic", Color.rgb(11, 14, 19), Color.rgb(230, 232, 237), Color.rgb(99, 217, 255)),
         Theme("Cyberpunk", Color.rgb(16, 9, 26), Color.rgb(249, 234, 255), Color.rgb(255, 59, 212)),
@@ -40,6 +42,7 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         BootstrapInstaller.install(this)
         buildNativeUi()
+        startNativeShellIfAvailable()
         printLine("MONNIXCODE NATIVE WORKSPACE", "info")
         printLine("Native Android UI · WebView disabled", "muted")
         printLine("Type help or use the buttons below.", "ok")
@@ -160,6 +163,11 @@ class MainActivity : Activity() {
     private fun executeCommand() {
         val command = commandInput.text.toString().trim()
         if (command.isEmpty()) return
+        if (nativeShell != null) {
+            nativeShell?.write("$command\n")
+            commandInput.text.clear()
+            return
+        }
         printLine("user@monnixcode:~$ $command", "command")
         commandInput.text.clear()
         val args = command.split(Regex("\\s+"))
@@ -250,6 +258,37 @@ class MainActivity : Activity() {
         terminalOutput.append(prefix + text + "\n")
     }
 
+    private fun startNativeShellIfAvailable() {
+        if (nativeShell != null || BootstrapInstaller.status(this) != "verified") return
+        val runtime = BootstrapInstaller.runtimeRoot(this)
+        val shell = File(runtime, "usr/bin/sh")
+        if (!shell.isFile || !shell.canExecute()) {
+            printLine("Verified bootstrap is missing executable usr/bin/sh.", "warn")
+            return
+        }
+        try {
+            val session = NativeShellSession(
+                shellPath = shell,
+                runtimeRoot = runtime,
+                onOutput = { output -> runOnUiThread { appendNativeOutput(output) } },
+                onClosed = { reason -> runOnUiThread { printLine("PTY closed: $reason", "warn") } }
+            )
+            if (session.start()) {
+                nativeShell = session
+                printLine("Connected to verified bootstrap through native PTY.", "ok")
+            } else {
+                printLine("Could not start native PTY shell.", "warn")
+            }
+        } catch (error: Throwable) {
+            printLine("Native PTY unavailable: ${error.message ?: error.javaClass.simpleName}", "warn")
+        }
+    }
+
+    private fun appendNativeOutput(output: String) {
+        if (!::terminalOutput.isInitialized || output.isEmpty()) return
+        terminalOutput.append(output)
+    }
+
     private fun showPanel(showTerminal: Boolean) {
         terminalPanel.visibility = if (showTerminal) View.VISIBLE else View.GONE
         filesPanel.visibility = if (showTerminal) View.GONE else View.VISIBLE
@@ -259,6 +298,17 @@ class MainActivity : Activity() {
         themeIndex = (themeIndex + 1) % themes.size
         themeButton.text = "Theme: ${themes[themeIndex].name}"
         Toast.makeText(this, "Theme: ${themes[themeIndex].name}", Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::terminalOutput.isInitialized) startNativeShellIfAvailable()
+    }
+
+    override fun onDestroy() {
+        nativeShell?.stop()
+        nativeShell = null
+        super.onDestroy()
     }
 
     private fun horizontalRow(background: Int) = LinearLayout(this).apply {
