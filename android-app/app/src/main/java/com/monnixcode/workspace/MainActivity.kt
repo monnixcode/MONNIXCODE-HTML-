@@ -118,7 +118,7 @@ class MainActivity : Activity() {
         inputRow.addView(label("user@monnixcode:~$", 11f, Color.rgb(104, 211, 145)), matchWrap())
         commandInput = EditText(this).apply {
             hint = "command"
-            hintTextColor = Color.rgb(143, 152, 168)
+            setHintTextColor(Color.rgb(143, 152, 168))
             setTextColor(theme.text)
             setSingleLine(true)
             textSize = 13f

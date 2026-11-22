@@ -49,21 +49,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build debug and release APKs
-        id: android-build
-        continue-on-error: true
-        run: ./gradlew --no-daemon clean assembleDebug assembleRelease 2>&1 | tee /tmp/monnixcode-gradle-build.log; test ${PIPESTATUS[0]} -eq 0
-
-      - name: Upload build diagnostics
-        if: steps.android-build.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: monnixcode-gradle-build-log-${{ github.sha }}
-          path: /tmp/monnixcode-gradle-build.log
-          if-no-files-found: error
-
-      - name: Fail if Android build failed
-        if: steps.android-build.outcome == 'failure'
-        run: exit 1
+        run: ./gradlew --no-daemon clean assembleDebug assembleRelease
 
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
