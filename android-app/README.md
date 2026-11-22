@@ -86,6 +86,8 @@ This allows a correctly built Bootstrap and package set to operate as a self-con
 
 The repository contains the installer and runtime contract, not fake shell binaries. A real runtime must be supplied as an ABI-compatible `.tar.xz` archive with a trusted SHA-256 value.
 
+For a step-by-step Thai guide for first-time users, see [`../BOOTSTRAP-GUIDE.md`](../BOOTSTRAP-GUIDE.md).
+
 From the app:
 
 1. Tap **Bootstrap**.

@@ -169,6 +169,7 @@ index.html                           Browser workspace
 assets/                               Browser workspace assets
 run.sh                                Local Python HTTP server launcher
 TERMUX-GUIDE.md                       Termux installation guide
+BOOTSTRAP-GUIDE.md                    Beginner guide for installing a verified Bootstrap archive
 termux-source/                        Related Termux source and notices
 .github/workflows/                    Pages and Android release workflows
 ```
