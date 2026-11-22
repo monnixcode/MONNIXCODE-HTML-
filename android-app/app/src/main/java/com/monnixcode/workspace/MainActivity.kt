@@ -45,7 +45,7 @@ class MainActivity : Activity() {
         startNativeShellIfAvailable()
         printLine("MONNIXCODE NATIVE WORKSPACE", "info")
         printLine("Native Android UI · WebView disabled", "muted")
-        printLine("Type help or use the buttons below.", "ok")
+        printLine("Type help or use the buttons below. Runtime is app-private; device root is not required.", "ok")
     }
 
     private fun buildNativeUi() {
@@ -98,7 +98,7 @@ class MainActivity : Activity() {
         root.addView(filesPanel, LinearLayout.LayoutParams(-1, 0, 1f).apply { height = 0 })
         filesPanel.visibility = View.GONE
 
-        val footer = label("Native mode · Linux shell requires verified Bootstrap + PTY", 10f, Color.rgb(143, 152, 168))
+        val footer = label("Termux-compatible mode · app-private runtime root · verified Bootstrap + PTY", 10f, Color.rgb(143, 152, 168))
         footer.setPadding(dp(12), dp(7), dp(12), dp(7))
         root.addView(footer, matchWrap())
         setContentView(root)

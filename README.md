@@ -1,73 +1,145 @@
 # MONNIXCODE Workspace
 
-MONNIXCODE Workspace เป็นหน้าเว็บแบบ standalone สำหรับเปิดบน Browser หรือรันจาก Termux ด้วย Python HTTP server โดยรวม Terminal UI, GitHub public clone และ Mobile File Workspace ไว้ในหน้าเดียว
+A native-first Android workspace with a Termux-compatible terminal runtime, mobile file access, verified Bootstrap installation, and a separate browser workspace for public GitHub Pages.
 
-![MONNIXCODE pixel header](assets/monnixcode-header.png)
+> **Scope:** The Android application provides a real interactive PTY shell inside the app sandbox. It does not obtain Android system root and does not bypass Android security boundaries. No device root is required.
 
-## ความสามารถรุ่นปัจจุบัน
+## Product overview
 
-- Header แบบ pixel-art ตามภาพ MONNIXCODE ที่แนบมา
-- Terminal UI แบบ responsive สำหรับมือถือและ Desktop
-- ธีม Classic, Cyberpunk และ Matrix
-- `git clone <public GitHub URL>` ใน Browser เพื่อโหลดไฟล์ข้อความขนาดเล็กของ repository สาธารณะมาไว้ใน workspace
-- เลือกไฟล์หลายไฟล์จากมือถือ
-- เลือกทั้งโฟลเดอร์จากมือถือด้วย folder picker ที่ Browser รองรับ
-- Drag-and-drop ไฟล์บน Desktop หรือ Browser ที่รองรับ
-- File browser, preview ไฟล์ข้อความ และสถานะขนาดไฟล์
-- คำสั่งดาวน์โหลด/เปิดไฟล์ผ่าน Browser ตามสิทธิ์ของ Browser
-- เก็บ workspace ชั่วคราวใน session ของหน้าเว็บโดยไม่อัปโหลดอัตโนมัติ
-- มี Termux source code แยกใน [`termux-source/`](termux-source/)
+MONNIXCODE Workspace has two complementary targets:
 
-## Public online
+1. **Native Android application** — Kotlin UI, native PTY, app-private Linux runtime, Bootstrap installer, and mobile file picker.
+2. **Browser workspace** — standalone HTML workspace for GitHub Pages or a local Termux HTTP server. Browser mode is intentionally limited by browser security and is not a Linux shell.
 
-เมื่อเปิด GitHub Pages สำเร็จ ให้เปิด:
+The Android app is the primary path for Termux-like terminal behavior.
 
-<https://monnixcode.github.io/MONNIXCODE-HTML-/>
+## Android capabilities
 
-หาก URL ยังตอบ `404` ให้เข้า **Settings → Pages** แล้วเลือก:
+- Native Kotlin UI; no WebView is used by `MainActivity`.
+- Interactive pseudo-terminal backed by native C++17/JNI code.
+- `sh -i` execution with terminal resize, stdin, stdout, and stderr forwarding.
+- Termux-compatible runtime variables: `PREFIX`, `HOME`, `TMPDIR`, `PATH`, `LD_LIBRARY_PATH`, `TERM`, and `MONNIXCODE_ROOT`.
+- Verified `tar.xz` Bootstrap installation with SHA-256 validation.
+- Secure extraction with path traversal and unsafe symlink checks.
+- Staging, validation, atomic activation, and rollback.
+- Native file selection through Android Storage Access Framework.
+- Classic, Cyberpunk, and Matrix themes.
+- Android 15+ baseline with standard Android/NDK APIs rather than vendor-specific APIs.
+
+## Security model: “root” without rooting the phone
+
+The app exposes an **app-private runtime root**, for example:
 
 ```text
-Source: Deploy from a branch
-Branch: main
-Folder: /(root)
+/data/data/com.monnixcode.workspace/files/monnixcode-runtime/
+├── home/
+├── tmp/
+└── usr/
+    ├── bin/
+    ├── etc/
+    ├── lib/
+    └── var/
 ```
 
-จากนั้นกด **Save** และรอการ deploy สักครู่
+Inside this directory the shell can behave like a Termux-style user-space environment. The application owns this directory and can execute the verified ABI-compatible binaries installed there. This is the meaning of “root” in MONNIXCODE documentation.
 
-## Android Kotlin application
+It is **not** Android system root. The app cannot automatically access `/data` belonging to other apps, alter `/system`, change SELinux policy, mount arbitrary filesystems, or grant itself privileged permissions. Access to shared files is provided through Android’s file picker and only for locations selected by the user.
 
-ในโฟลเดอร์ [`android-app/`](android-app/) มี Android project ภาษา Kotlin สำหรับ Android 15, 16 และ 17+:
+This design avoids requiring a rooted phone and is the portable option across standard Android devices.
 
-- `minSdk = 35` (Android 15)
-- `compileSdk = 36` และ `targetSdk = 36` (รันได้บน Android 15, 16, 17+; Android 16 เป็น API 36)
-- Android app ใช้ native Kotlin UI สำหรับ Terminal และ Files / Folders; Web Workspace ยังใช้แยกผ่าน GitHub Pages หรือ Browser
-- ใช้ Android file chooser สำหรับเลือกไฟล์จากมือถือ
-- มี Bootstrap Activity สำหรับเลือก `tar.xz`, ตรวจ SHA-256 และดู progress การติดตั้งแบบ atomic
-- มี `BootstrapInstaller` และ bootstrap runtime contract แยกไว้ใน `app/src/main/assets/bootstrap/`
-- มี GitHub Actions ที่ `.github/workflows/android-release.yml`
+## Bootstrap installation
 
-Build APK ทดสอบในเครื่อง:
+A real shell requires a verified Termux-compatible Bootstrap archive. The repository does not invent, bundle, or claim to provide fake shell binaries.
+
+The archive must:
+
+- be built for the device ABI, such as `arm64-v8a`;
+- contain the required runtime files, including `usr/bin/sh`;
+- be distributed with a trusted SHA-256 digest;
+- preserve the licenses and notices of the source packages;
+- be installed through the native **Bootstrap** screen.
+
+Installation flow:
+
+1. Open the Android app.
+2. Select **Bootstrap**.
+3. Choose the ABI-matched `.tar.xz` archive.
+4. Enter the expected 64-character SHA-256 digest.
+5. Wait for verify, extract, validate, and activate stages to complete.
+6. Return to Terminal. The app will start the native PTY only after status becomes `verified` and `usr/bin/sh` is executable.
+
+Until this step is complete, the app fails closed and does not claim that a real Linux shell is available.
+
+## Android compatibility
+
+The project is configured with:
+
+- `minSdk = 35` — Android 15
+- `compileSdk = 36`
+- `targetSdk = 36`
+- Java/Kotlin target 17
+- NDK `27.2.12479018`
+- CMake `3.22.1`
+
+The runtime uses public Android APIs, POSIX PTY APIs available through the NDK, and app-private storage. It is designed for AOSP-compatible Android 15 and newer across major OEMs. Actual support can still vary by device ABI, vendor kernel policy, filesystem behavior, battery restrictions, and the Bootstrap archive supplied by the user. “All Android brands” cannot guarantee identical behavior because OEMs control those platform policies.
+
+## Build the Android app
+
+Requirements:
+
+- Android Studio or command-line Android SDK
+- Platform 36
+- Build Tools 35.0.0 or a compatible installed version
+- NDK 27.2.12479018
+- CMake 3.22.1
+- JDK 17
+
+Build from the repository root:
 
 ```sh
 cd android-app
 ./gradlew assembleDebug
 ```
 
-สร้าง GitHub Release พร้อม APK:
+APK output:
 
-```sh
-git add android-app .github/workflows/android-release.yml
-git commit -m "Prepare Android app release"
-git push origin main
-git tag v1.0.0
-git push origin v1.0.0
+```text
+android-app/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Workflow จะ build debug/release APK, อัปโหลดเป็น artifact และแนบ APK เข้า Release ของ tag โดยอัตโนมัติ อ่านรายละเอียดที่ [`android-app/README.md`](android-app/README.md)
+For a release build:
 
-> Bootstrap ใน project ตอนนี้เป็น runtime contract และ installer layout ที่ตรวจสอบได้ ไม่ใช่การสร้าง binary shell ปลอม หากต้องการ Linux shell เต็มรูปแบบ ต้องเติม bootstrap archive ที่ build จาก `termux-packages` ให้ตรงกับ ABI พร้อม checksum และ license ก่อน
+```sh
+./gradlew assembleRelease
+```
 
-## ติดตั้งและรันบน Termux
+The default release APK is unsigned. Configure a private signing key through a secure CI secret before production distribution.
+
+## GitHub Actions and releases
+
+Workflow:
+
+```text
+.github/workflows/android-release.yml
+```
+
+The workflow:
+
+- runs on `v*` tags or manual dispatch;
+- installs Android Platform 36, NDK 27.2.12479018, and CMake 3.22.1;
+- builds debug and release APKs;
+- uploads APK artifacts;
+- attaches APKs to the GitHub Release for the tag.
+
+The native PTY release is tagged `v1.1.0`.
+
+## Browser workspace
+
+Live site:
+
+<https://monnixcode.github.io/MONNIXCODE-HTML-/>
+
+Run locally in Termux:
 
 ```sh
 pkg update && pkg upgrade -y
@@ -78,112 +150,29 @@ chmod +x run.sh
 ./run.sh
 ```
 
-เปิด Browser บนมือถือที่:
+Open:
 
 ```text
 http://127.0.0.1:8080
 ```
 
-ใช้ port อื่นได้:
+Browser mode supports responsive terminal UI, themes, public GitHub file browsing, file selection, folder selection where supported, drag-and-drop, and text preview. It cannot run arbitrary Linux commands, access all phone storage, or provide a real PTY because browser security prevents those operations.
 
-```sh
-./run.sh 3000
+## Repository layout
+
+```text
+android-app/                         Native Kotlin Android application
+android-app/app/src/main/cpp/        Native PTY implementation and CMake config
+android-app/app/src/main/java/       Kotlin activities, installer, and PTY bridge
+android-app/app/src/main/assets/     UI assets and Bootstrap contract
+index.html                           Browser workspace
+assets/                               Browser workspace assets
+run.sh                                Local Python HTTP server launcher
+TERMUX-GUIDE.md                       Termux installation guide
+termux-source/                        Related Termux source and notices
+.github/workflows/                    Pages and Android release workflows
 ```
-
-อ่านคู่มือเต็มที่ [TERMUX-GUIDE.md](TERMUX-GUIDE.md)
-
-## การใช้งาน GitHub clone ในหน้าเว็บ
-
-พิมพ์ใน Terminal:
-
-```sh
-git clone https://github.com/monnixcode/MONNIXCODE-HTML-.git
-```
-
-หรือใส่ URL ในกล่อง **GitHub public clone** แล้วกด `Clone`
-
-ระบบจะเรียก GitHub API และโหลดเฉพาะไฟล์ข้อความ/ซอร์สขนาดไม่เกิน 200 KB ต่อไฟล์ สูงสุด 80 ไฟล์ มาไว้ใน `Files / Folders` เพื่อ preview ใน Browser เหมาะสำหรับดู source, README และไฟล์ config แบบสาธารณะ
-
-คำสั่งที่เกี่ยวข้อง:
-
-```sh
-git help
-git status
-ls
-open README.md
-```
-
-> นี่เป็น browser-compatible clone สำหรับอ่านไฟล์ ไม่ใช่ Git client เต็มรูปแบบ และไม่รองรับ private repository, push, commit, branch, merge หรือการรันคำสั่งบนเครื่อง
-
-## การใช้ไฟล์และโฟลเดอร์มือถือ
-
-1. เปิดแท็บ `Files / Folders`
-2. กด `Choose files` เพื่อเลือกหลายไฟล์
-3. กด `Choose folder` เพื่อเลือกทั้งโฟลเดอร์ หาก Browser รองรับ
-4. หรือวางไฟล์ลงในพื้นที่ `Drop files here`
-5. แตะชื่อไฟล์เพื่อ preview
-
-Browser จะขอสิทธิ์เฉพาะรายการที่ผู้ใช้เลือก ไม่สามารถเปิดอ่านทุกโฟลเดอร์ในมือถือโดยอัตโนมัติ และไฟล์จะอยู่เฉพาะใน session ของ Browser
-
-## คำสั่งใน Terminal
-
-```sh
-help
-clear
-pwd
-whoami
-date
-uname
-neofetch
-echo hello
-ls
-git clone <public GitHub URL>
-git status
-git help
-nix help
-nix up
-nix in git curl
-nix rm git
-nix ls
-```
-
-## ข้อจำกัดสำคัญ
-
-หน้าเว็บไม่สามารถรัน Linux shell จริงหรือทำงานกับไฟล์ทั้งหมดในมือถือโดยไม่มีการเลือกจากผู้ใช้ได้ เนื่องจากข้อจำกัดความปลอดภัยของ Browser ดังนั้นคำสั่งต่อไปนี้ต้องรันในแอป Termux จริง:
-
-```sh
-apt
-pkg
-sudo
-bash
-python
-node
-make
-git clone <any repository>
-git commit
-git push
-```
-
-สำหรับการใช้คำสั่งได้เต็มรูปแบบ ให้เปิด Termux แล้วใช้ source จาก repository นี้:
-
-```sh
-cd ~
-git clone https://github.com/monnixcode/MONNIXCODE-HTML-.git
-cd MONNIXCODE-HTML-
-```
-
-จากนั้นใช้คำสั่ง Linux จริงใน Termux โดยตรง ไม่ใช่ช่อง Terminal ใน Browser
-
-## โครงสร้างไฟล์
-
-- `index.html` — Web Terminal + GitHub clone + Mobile File Workspace
-- `assets/monnixcode-header.png` — pixel-art header จากภาพที่ผู้ใช้แนบ
-- `run.sh` — เปิด Python HTTP server
-- `TERMUX-GUIDE.md` — คู่มือติดตั้งและใช้งาน Termux
-- `TERMUX-SOURCE.md` — คำอธิบายการรวม Termux source
-- `termux-source/` — Android/Termux source code แยกชุด
-- `.github/workflows/pages.yml` — workflow สำหรับ GitHub Pages
 
 ## License
 
-MONNIXCODE HTML edition ใช้ GPLv3 ตามไฟล์ [LICENSE.md](LICENSE.md) โปรดรักษา license และ notices ของ source ใน `termux-source/` ตาม [termux-source/LICENSE.md](termux-source/LICENSE.md)
+The browser edition is licensed under GPLv3; see [LICENSE.md](LICENSE.md). Preserve the licenses and notices of all third-party source and Bootstrap packages, including the material in [`termux-source/`](termux-source/).

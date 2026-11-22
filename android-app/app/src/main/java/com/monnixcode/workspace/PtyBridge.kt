@@ -38,6 +38,7 @@ internal class NativeShellSession(
         val home = File(runtimeRoot, "home").apply { mkdirs() }
         val tmp = File(runtimeRoot, "tmp").apply { mkdirs() }
         val environment = arrayOf(
+            "MONNIXCODE_ROOT=${runtimeRoot.absolutePath}",
             "PREFIX=${prefix.absolutePath}",
             "HOME=${home.absolutePath}",
             "TMPDIR=${tmp.absolutePath}",

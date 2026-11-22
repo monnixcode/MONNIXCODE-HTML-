@@ -1,88 +1,194 @@
-# MONNIXCODE Workspace Android app
+# MONNIXCODE Workspace Android
 
-Kotlin Android application for Android 15, 16 and 17+. The Android app uses a native Kotlin workspace UI; the Web Workspace remains available separately through GitHub Pages and Termux.
+Native Kotlin Android application that provides a Termux-compatible user-space terminal without requiring a rooted device.
 
-## Platform configuration
+## What this application is
 
-- `minSdk = 35` — Android 15
-- `compileSdk = 36` — Android 16 SDK; the app runs on Android 15, 16 and 17+
-- `targetSdk = 36` — meets the current Android 16 / Google Play target baseline
-- `MainActivity` — native terminal/files workspace with no WebView or right-edge WebView scrollbar
-- `BootstrapActivity` — native UI for selecting an archive, entering SHA-256 and tracking installation progress
-- Java/Kotlin JVM target 17
-- Kotlin + Android Gradle Plugin via Gradle Kotlin DSL
+MONNIXCODE Workspace is a native Android app, not a WebView wrapper. It combines:
+
+- a native Kotlin terminal UI;
+- a native C++17/JNI pseudo-terminal layer;
+- a verified ABI-specific Bootstrap runtime;
+- an app-private runtime root;
+- Android Storage Access Framework file selection;
+- Classic, Cyberpunk, and Matrix themes.
+
+The design follows the same broad user-space model as Termux: a shell process runs in a private prefix with `HOME`, `PREFIX`, `PATH`, temporary storage, libraries, and a PTY. It is not a replacement for Android system root.
+
+## Non-root security model
+
+“Root” means the root of the application runtime, not the root user or filesystem of Android.
+
+```text
+/data/data/com.monnixcode.workspace/files/monnixcode-runtime/
+├── home/       Shell home directory
+├── tmp/        Runtime temporary directory
+└── usr/        Prefix containing shell, libraries, etc., and packages
+```
+
+The app can fully manage its own runtime directory without `su`, Magisk, bootloader changes, or a rooted phone. Android still enforces the application sandbox:
+
+- other applications’ private data remains inaccessible;
+- `/system` and protected Android paths are not writable;
+- SELinux and vendor kernel policies remain active;
+- shared storage is accessed through user-selected Android document URIs;
+- the app cannot grant itself system privileges.
+
+This is intentional and is what makes the design suitable for non-root devices.
+
+## Native PTY architecture
+
+```text
+Kotlin MainActivity
+      │ commands / output callbacks
+      ▼
+NativeShellSession
+      │ JNI
+      ▼
+PtyBridge.kt ───── libmonnixcode_pty.so
+                         │
+                         ├─ posix_openpt / grantpt / unlockpt
+                         ├─ fork / setsid / TIOCSCTTY
+                         ├─ dup2 stdin/stdout/stderr
+                         ├─ terminal resize via TIOCSWINSZ
+                         └─ exec verified usr/bin/sh -i
+```
+
+The shell is started only when all of the following are true:
+
+1. `BootstrapInstaller.status(context) == "verified"`;
+2. `files/monnixcode-runtime/usr/bin/sh` exists;
+3. the shell file is executable;
+4. the native PTY library can be loaded successfully.
+
+If any condition fails, the application displays a warning and does not pretend that a real Linux shell is active.
+
+## Termux-compatible environment
+
+The PTY session exports:
+
+```text
+MONNIXCODE_ROOT=<app-private runtime>
+PREFIX=<runtime>/usr
+HOME=<runtime>/home
+TMPDIR=<runtime>/tmp
+PATH=<runtime>/usr/bin:/system/bin:/system/xbin
+LD_LIBRARY_PATH=<runtime>/usr/lib
+TERM=xterm-256color
+COLORTERM=truecolor
+SHELL=<runtime>/usr/bin/sh
+LANG=en_US.UTF-8
+```
+
+This allows a correctly built Bootstrap and package set to operate as a self-contained user-space runtime. Package availability depends on the Bootstrap archive and package repositories supplied for the target ABI; the app does not silently fabricate packages.
+
+## Bootstrap installation
+
+The repository contains the installer and runtime contract, not fake shell binaries. A real runtime must be supplied as an ABI-compatible `.tar.xz` archive with a trusted SHA-256 value.
+
+From the app:
+
+1. Tap **Bootstrap**.
+2. Select the archive.
+3. Enter its SHA-256 digest.
+4. Review verification and extraction progress.
+5. Wait for required-file validation and atomic activation.
+6. Return to the Terminal tab.
+
+`BootstrapInstaller` provides:
+
+- SHA-256 verification before extraction;
+- `tar.xz` support through Apache Commons Compress and Tukaani XZ;
+- path traversal protection;
+- safe symlink validation;
+- required-file validation;
+- staging and atomic activation;
+- rollback if activation fails;
+- install metadata and verified status marker.
+
+Do not install an archive from an untrusted source. Preserve the license and notice files shipped with the Bootstrap and its packages.
+
+## Platform and OEM compatibility
+
+Project configuration:
+
+```text
+minSdk       35             Android 15
+compileSdk   36
+ targetSdk   36
+JVM target   17
+NDK          27.2.12479018
+CMake        3.22.1
+```
+
+The application uses public Android APIs, app-private storage, and standard NDK PTY primitives. It is designed for AOSP-compatible Android 15+ devices and common OEM distributions. No software can guarantee identical behavior on every vendor because OEMs may change:
+
+- supported CPU ABI and executable formats;
+- background execution and battery policies;
+- filesystem mount and `noexec` behavior;
+- SELinux restrictions;
+- document-provider behavior;
+- kernel PTY behavior.
+
+For a production device matrix, test at least `arm64-v8a`, the intended Bootstrap archive, screen rotation, background/foreground transitions, low-storage conditions, and the vendor’s battery restrictions.
 
 ## Build locally
 
-Install Android Studio with Android SDK Platform 36 and Build Tools 35.0.0, then run from this directory:
+Use JDK 17 and install Android SDK Platform 36, Build Tools 35.0.0 or compatible, NDK 27.2.12479018, and CMake 3.22.1.
 
 ```sh
+cd android-app
+./gradlew help
 ./gradlew assembleDebug
 ```
 
-APK output:
+APK:
 
 ```text
 app/build/outputs/apk/debug/app-debug.apk
 ```
 
-For a release build:
+Release build:
 
 ```sh
 ./gradlew assembleRelease
 ```
 
-The default release APK is unsigned. The debug APK is signed with the standard debug key and is suitable for testing. Add a private signing configuration through GitHub Secrets before distributing a production release.
-
-## Bootstrap status
-
-`app/src/main/assets/bootstrap/` contains a verified runtime contract and installer layout. On first launch, `BootstrapInstaller` creates:
-
-```text
-files/monnixcode-runtime/
-├── home/
-├── tmp/
-└── usr/
-    ├── bin/
-    ├── etc/
-    └── var/lib/
-```
-
-This repository does **not** invent or ship fake shell binaries. A real Termux-compatible Linux bootstrap must be built from a matching `termux-packages` release for each ABI, with checksums, package metadata and licenses. Until those archives are added, the native app is the Web Workspace; full Linux commands run in the Termux source/app separately.
-
-`BootstrapInstaller` now provides the verified installation path for a real archive. After downloading an ABI-matched archive into the app-private storage, call it from a controlled installation flow:
-
-```kotlin
-BootstrapInstaller.installArchive(
-    context = this,
-    archive = downloadedArchive,
-    expectedSha256 = manifestSha256,
-    requiredFiles = listOf("usr/bin/sh", "usr/etc")
-)
-```
-
-The installer verifies SHA-256 before extraction, reads `tar.xz` using Apache Commons Compress and Tukaani XZ, rejects unsafe paths and escaping symlinks, validates required files, and switches the staging directory into `files/monnixcode-runtime/` only after the installation is complete. It also records `bootstrap-install.json` with the verified digest. Add the archive and its real checksum to the ABI-specific manifest before enabling this path in production.
-
-When the app is running, the **Bootstrap** button in the Web Workspace opens `BootstrapActivity`. The screen lets the user choose a `.tar.xz` file, enter its 64-character SHA-256 digest, and observe verification, extraction, validation and atomic activation stages. The button is hidden in the ordinary browser version because the native Android bridge is not available there.
+The default release artifact is unsigned. Configure signing only through a protected release configuration.
 
 ## GitHub Actions
 
-Workflow: `.github/workflows/android-release.yml`
+Workflow:
 
-- Runs on `v*` tags and manual dispatch.
-- Installs Android SDK Platform 36.
-- Builds debug and release APKs.
-- Uploads both APKs as workflow artifacts.
-- On a version tag, attaches APKs to the GitHub Release.
-
-Create a release build:
-
-```sh
-git add android-app .github/workflows/android-release.yml
-git commit -m "Prepare Android app release"
-git push origin main
-git tag v1.0.0
-git push origin v1.0.0
+```text
+../.github/workflows/android-release.yml
 ```
 
-The debug APK is the installable test build. The release APK is unsigned until a signing secret/configuration is added.
+It installs the Android SDK, NDK, and CMake, then builds debug and release APKs. Tags matching `v*` also receive APK assets in the corresponding GitHub Release.
+
+Current native PTY release:
+
+- tag: `v1.1.0`
+- commit: `71c9ea6`
+
+## Troubleshooting
+
+### Terminal shows “verified Bootstrap required”
+
+Install a valid ABI-matched archive through the Bootstrap screen. The layout-only first-launch directories are not a Linux runtime and intentionally do not start a shell.
+
+### PTY does not start after installation
+
+Verify that the archive contains an executable `usr/bin/sh`, that the archive ABI matches the device, and that the app has sufficient private storage. Check Android logcat for the `MonnixcodePTY` tag.
+
+### Commands are missing
+
+The shell only contains commands included in the installed Bootstrap and package set. Installing a shell alone does not provide `git`, Python, Node.js, or a package manager.
+
+### App is suspended in the background
+
+Android and OEM battery managers may stop background work. Exclude the app from aggressive battery optimization only when appropriate for the device and user’s policy. The app cannot override vendor power management silently.
+
+## License and notices
+
+The Android application and repository licensing must be reviewed together with the licenses of the Bootstrap, Termux-compatible packages, Apache Commons Compress, Tukaani XZ, and any other included component. Do not redistribute a Bootstrap archive unless its upstream license permits it. See the repository [LICENSE.md](../LICENSE.md) and relevant notices.
