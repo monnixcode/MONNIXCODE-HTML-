@@ -78,8 +78,12 @@ class MainActivity : Activity() {
         val toolbar = horizontalRow(theme.background)
         themeButton = button("Theme: ${theme.name}", theme.accent) { cycleTheme() }
         toolbar.addView(themeButton, weightButton())
-        toolbar.addView(button("Bootstrap", theme.accent) {
-            startActivity(Intent(this, BootstrapActivity::class.java))
+        toolbar.addView(button("Runtime", theme.accent) {
+            Toast.makeText(
+                this,
+                "Embedded Bootstrap: ${BootstrapInstaller.status(this)}",
+                Toast.LENGTH_LONG
+            ).show()
         }, weightButton())
         toolbar.addView(button("Clear", theme.accent) {
             terminalOutput.text = ""
@@ -176,7 +180,7 @@ class MainActivity : Activity() {
             "help" -> listOf(
                 "help, clear, pwd, whoami, date, uname, echo <text>",
                 "ls, git status, git help, open <file>",
-                "Bootstrap button opens the native verified installer.",
+                "Runtime uses the embedded ABI-matched Bootstrap and installs it automatically.",
                 "Full Linux commands require a verified runtime and PTY."
             ).forEach { printLine(it, "info") }
             "pwd" -> printLine("/data/data/com.monnixcode.workspace/files/monnixcode-runtime/home", "ok")

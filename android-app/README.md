@@ -82,33 +82,26 @@ LANG=en_US.UTF-8
 
 This allows a correctly built Bootstrap and package set to operate as a self-contained user-space runtime. Package availability depends on the Bootstrap archive and package repositories supplied for the target ABI; the app does not silently fabricate packages.
 
-## Bootstrap installation
+## Embedded Bootstrap and first launch
 
-The repository contains the installer and runtime contract, not fake shell binaries. A real runtime must be supplied as an ABI-compatible `.tar.xz` archive with a trusted SHA-256 value.
+The Android build downloads the pinned official `termux-packages` Bootstrap release for four ABIs, verifies each archive by SHA-256, and embeds the archives into the APK. The app then selects the first supported device ABI and installs the matching archive automatically on first launch.
 
-For a step-by-step Thai guide for first-time users, see [`../BOOTSTRAP-GUIDE.md`](../BOOTSTRAP-GUIDE.md).
+The automatic flow is:
 
-From the app:
+1. Select the device ABI from `Build.SUPPORTED_ABIS`.
+2. Open the embedded ABI-specific ZIP archive.
+3. Extract its prefix into the app-private `runtime/usr` directory.
+4. Restore the archive's `SYMLINKS.txt` entries safely.
+5. Validate `usr/bin/sh` and `usr/etc`.
+6. Write verified metadata and atomically activate the runtime.
 
-1. Tap **Bootstrap**.
-2. Select the archive.
-3. Enter its SHA-256 digest.
-4. Review verification and extraction progress.
-5. Wait for required-file validation and atomic activation.
-6. Return to the Terminal tab.
+The **Runtime** button reports the current status; there is no manual archive picker in the native app. If the embedded archive is unavailable or fails validation, the app fails closed and shows a warning rather than claiming that a real shell is available.
 
-`BootstrapInstaller` provides:
+`BootstrapInstaller` provides both the legacy verified `tar.xz` path for maintainers and the embedded ZIP path used by the app. The embedded path includes SHA-256 pinning, path traversal protection, safe symlink validation, required-file validation, staging, atomic activation, rollback, and a verified status marker.
 
-- SHA-256 verification before extraction;
-- `tar.xz` support through Apache Commons Compress and Tukaani XZ;
-- path traversal protection;
-- safe symlink validation;
-- required-file validation;
-- staging and atomic activation;
-- rollback if activation fails;
-- install metadata and verified status marker.
+The embedded archive is a Termux-compatible base user-space, not a complete Termux app. The package name, Android integration, repositories, and available packages may differ. Preserve upstream licenses and notices when redistributing the APK.
 
-Do not install an archive from an untrusted source. Preserve the license and notice files shipped with the Bootstrap and its packages.
+For background and troubleshooting, see [`../BOOTSTRAP-GUIDE.md`](../BOOTSTRAP-GUIDE.md).
 
 ## Platform and OEM compatibility
 
@@ -170,8 +163,8 @@ It installs the Android SDK, NDK, and CMake, then builds debug and release APKs.
 
 Current native PTY release:
 
-- tag: `v1.1.0`
-- commit: `71c9ea6`
+- planned tag: `v1.2.0`
+- embedded Bootstrap release: `bootstrap-2026.11.15-r1+apt.android-7`
 
 ## Troubleshooting
 

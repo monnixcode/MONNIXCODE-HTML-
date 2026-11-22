@@ -1,452 +1,245 @@
-# คู่มือการติดตั้ง Termux-compatible Bootstrap สำหรับผู้เริ่มต้น
+# คู่มือ Bootstrap สำหรับผู้ใช้ MONNIXCODE Workspace
 
-คู่มือนี้จัดทำสำหรับผู้ที่ไม่เคยใช้ Termux หรือ Linux มาก่อน และต้องการเปิดใช้งาน Linux shell จริงใน **MONNIXCODE Workspace Android**
+คู่มือนี้อธิบายระบบ Bootstrap แบบฝังใน APK สำหรับผู้ที่ไม่เคยใช้ Termux หรือ Linux มาก่อน
 
-## สรุปสั้น ๆ
+## ผู้ใช้ทั่วไปไม่ต้องดาวน์โหลด Bootstrap เอง
 
-MONNIXCODE ไม่สามารถสร้าง Linux shell ขึ้นมาเองได้ และจะไม่ติดตั้ง binary ปลอมให้ผู้ใช้ ดังนั้นต้องมีไฟล์ **Bootstrap archive** ที่เป็นไฟล์ `.tar.xz` ก่อน
+MONNIXCODE Workspace รุ่น embedded จะมี Bootstrap archive แยกตาม CPU architecture อยู่ใน APK แล้ว ระบบจะเลือก archive ที่ตรงกับโทรศัพท์และติดตั้งเองเมื่อเปิดแอปครั้งแรก
 
-Bootstrap archive คือชุดไฟล์พื้นฐานของ Linux user-space เช่น shell, library, directory และ package metadata ซึ่งแอปจะนำไปติดตั้งไว้ในพื้นที่ส่วนตัวของแอป
+ผู้ใช้ไม่ต้อง:
 
-หลังติดตั้งสำเร็จ Terminal จะทำงานใกล้เคียง Termux ในระดับ user-space โดยไม่ต้อง:
-
+- ดาวน์โหลดไฟล์ `.zip` หรือ `.tar.xz` เอง
+- คำนวณ SHA-256 เอง
+- เลือก archive จาก file picker
+- ติดตั้ง Termux ก่อน
 - root โทรศัพท์
-- ติดตั้ง Magisk
-- ใช้คำสั่ง `su`
-- ปลดล็อก bootloader
-- แก้ไข `/system`
+- ติดตั้ง Magisk หรือใช้ `su`
 
-> คำว่า “root” ในคู่มือนี้หมายถึง **runtime root ภายในพื้นที่ของแอป** ไม่ใช่ Android system root
+ปุ่ม **Runtime** ในหน้าแอปใช้ดูสถานะเท่านั้น ไม่ใช่ปุ่มเลือก archive แบบรุ่นเก่า
 
----
+> คำว่า “root” ในเอกสารนี้หมายถึง app-private runtime root ไม่ใช่ Android system root
 
-## 1. สิ่งที่ต้องเตรียม
+## Bootstrap ที่ฝังมาจากไหน
 
-เตรียมสิ่งต่อไปนี้ให้ครบ:
+ระบบ build ใช้ release ที่ pin ไว้ของ `termux/termux-packages` และตรวจ SHA-256 ก่อนฝังลง APK โดยมี archive สำหรับ:
 
-1. โทรศัพท์ Android 15 ขึ้นไป
-2. MONNIXCODE Workspace รุ่นที่มีปุ่ม **Bootstrap**
-3. Bootstrap archive นามสกุล `.tar.xz`
-4. ค่า SHA-256 ของ archive จำนวน 64 ตัวอักษร
-5. พื้นที่ว่างเพียงพอสำหรับ archive และไฟล์ที่แตกออกมา
-6. archive ที่ตรงกับ CPU architecture ของโทรศัพท์
+- `arm64-v8a` จาก `bootstrap-aarch64.zip`
+- `armeabi-v7a` จาก `bootstrap-arm.zip`
+- `x86` จาก `bootstrap-i686.zip`
+- `x86_64` จาก `bootstrap-x86_64.zip`
 
-ไม่ควรดาวน์โหลด archive จากลิงก์สุ่มหรือไฟล์ที่ไม่ทราบแหล่งที่มา เพราะ archive สามารถบรรจุ executable ที่แอปนำไปรันได้
+นี่เป็น user-space base runtime ที่ใช้แนวคิดเดียวกับ Termux ไม่ใช่การฝังแอป Termux ทั้งหมด และไม่ใช่ Android system root
 
----
-
-## 2. Bootstrap archive คืออะไร
-
-ไฟล์ Bootstrap ที่ถูกต้องควรมีโครงสร้างลักษณะนี้เมื่อเปิดดูรายการไฟล์:
+Bootstrap จะติดตั้งไว้ในพื้นที่ส่วนตัวของแอป:
 
 ```text
-usr/
-├── bin/
-│   └── sh
-├── etc/
-├── lib/
-└── var/
+/data/data/com.monnixcode.workspace/files/monnixcode-runtime/
+├── home/
+├── tmp/
+└── usr/
+    ├── bin/
+    ├── etc/
+    ├── lib/
+    └── var/
 ```
 
-ไฟล์สำคัญขั้นต่ำที่ installer ตรวจสอบคือ:
+## ขั้นตอนการติดตั้งอัตโนมัติ
+
+### 1. ติดตั้ง APK
+
+ติดตั้ง APK รุ่นที่ build พร้อม embedded Bootstrap แล้วเปิดแอปตามปกติ
+
+APK ที่ build แบบเก่าซึ่งไม่มี archive ฝังอยู่จะไม่สามารถติดตั้ง runtime อัตโนมัติได้
+
+### 2. เปิดแอปครั้งแรก
+
+แอปจะตรวจ ABI จาก Android แล้วเลือก archive ที่ตรงกัน จากนั้นทำงานตามลำดับ:
 
 ```text
-usr/bin/sh
-usr/etc/
+เลือก ABI
+→ เปิด embedded archive
+→ แตกไฟล์ลง staging
+→ ตรวจ path และ symlink
+→ ตรวจ usr/bin/sh
+→ activate แบบ atomic
+→ บันทึกสถานะ verified
 ```
 
-archive จะต้องเป็นไฟล์ tar ที่บีบอัดด้วย XZ จึงมักลงท้ายด้วย:
+ไม่ควรปิดแอประหว่างการติดตั้งครั้งแรก โดยเฉพาะเมื่อพื้นที่ว่างเหลือน้อย
+
+### 3. ตรวจสถานะ
+
+กดปุ่ม **Runtime** เพื่อดูสถานะ โดยสถานะที่คาดหวังคือ:
 
 ```text
-.tar.xz
+Embedded Bootstrap: verified
 ```
 
-ไฟล์ `.zip`, `.tar.gz`, `.apk` หรือไฟล์ติดตั้ง Termux ทั้งแอป ไม่ใช่ Bootstrap archive ที่หน้านี้ต้องการ
+ถ้ายังเห็น `not-installed` หรือ `layout-installed` แสดงว่า runtime ยังไม่พร้อมและแอปจะไม่อ้างว่า Linux shell ใช้งานได้จริง
 
----
+### 4. เปิด Terminal
 
-## 3. ตรวจสอบ CPU architecture ของโทรศัพท์
+เมื่อสถานะเป็น `verified` แอปจะเริ่ม native PTY และเรียก:
 
-Bootstrap ต้องตรงกับ CPU architecture หากเลือกผิด shell อาจเริ่มไม่ได้หรือ binary รันไม่ได้
+```text
+<runtime>/usr/bin/sh -i
+```
 
-### วิธีที่ง่ายที่สุดใน Android
+ลองคำสั่งพื้นฐาน:
 
-เปิด **Settings → About phone** แล้วค้นหาคำว่า:
+```sh
+pwd
+ls
+printf '%s\n' "$SHELL"
+printf '%s\n' "$PREFIX"
+printf '%s\n' "$HOME"
+```
 
-- CPU
-- Processor
-- Architecture
-- ABI
+ค่าที่คาดหวัง:
 
-โทรศัพท์ Android รุ่นใหม่ส่วนใหญ่ใช้ `arm64-v8a` หรือเรียกสั้น ๆ ว่า `aarch64`
+- `SHELL` ชี้ไปยัง `.../monnixcode-runtime/usr/bin/sh`
+- `PREFIX` ชี้ไปยัง `.../monnixcode-runtime/usr`
+- `HOME` อยู่ภายใน runtime
+- `pwd` เริ่มต้นที่ runtime home
 
-### หากมี Termux อยู่แล้ว
+## เข้าใจคำว่า “เหมือน Termux” อย่างถูกต้อง
 
-เปิด Termux แล้วรัน:
+MONNIXCODE ใช้แนวทางเดียวกับ Termux ในส่วนสำคัญ ได้แก่ shell ใน user-space, prefix, HOME, PATH, library path และ PTY แบบ interactive
+
+แต่ยังไม่ควรตีความว่าเป็น Termux ทุกส่วน เพราะ MONNIXCODE มี:
+
+- application ID ของตัวเอง
+- UI และ lifecycle ของตัวเอง
+- native PTY layer ที่พัฒนาสำหรับแอปนี้
+- package integration และ repository configuration ที่อาจต่างจาก Termux
+- ข้อจำกัดของ Android sandbox และ OEM
+
+คำสั่งจะมีเท่าที่อยู่ใน Bootstrap และ package set ที่ติดตั้ง หากต้องการ `git`, `python`, `node`, `vim` หรือโปรแกรมอื่น ต้องมี package เหล่านั้นใน runtime หรือมีระบบ package repository ที่รองรับ
+
+## CPU architecture สำหรับผู้ที่ต้องตรวจสอบ
+
+โดยทั่วไปโทรศัพท์ Android รุ่นใหม่ใช้ `arm64-v8a`
+
+หากมี Termux อยู่แล้ว ให้เปิด Termux และใช้:
 
 ```sh
 uname -m
 ```
 
-ผลลัพธ์ที่พบบ่อย:
-
-| ผลลัพธ์จาก `uname -m` | ABI ที่ควรเลือก |
-|---|---|
-| `aarch64` | `arm64-v8a` |
-| `armv7l` หรือ `armv8l` | `armeabi-v7a` |
-| `x86_64` | `x86_64` |
-| `i686` หรือ `i386` | `x86` |
-
-ถ้าไม่แน่ใจ ให้ใช้ข้อมูล ABI จากหน้าผู้ผลิตอุปกรณ์หรือ Android diagnostic app ที่เชื่อถือได้ อย่าเดาจากชื่อรุ่นเพียงอย่างเดียว
-
-> MONNIXCODE ไม่ได้ทำให้ binary ของ architecture หนึ่งสามารถรันบนอีก architecture หนึ่งได้ การเลือก archive ต้องตรงกับอุปกรณ์จริง
-
----
-
-## 4. รับ Bootstrap archive อย่างปลอดภัย
-
-ผู้ใช้ต้องรับ archive จากแหล่งที่เชื่อถือได้ เช่น:
-
-- release หรือ artifact ของโครงการที่สร้าง archive โดยตรง
-- server ภายในองค์กรที่มีการควบคุมไฟล์
-- archive ที่ผู้ดูแลระบบสร้างและแจกพร้อม checksum
-- package/runtime build ที่มี license และ notice ครบถ้วน
-
-ก่อนใช้งานควรมีข้อมูลคู่กันเสมอ:
+การแปลงค่าที่พบบ่อย:
 
 ```text
-ชื่อไฟล์: bootstrap-arm64-v8a.tar.xz
-SHA-256: 64-character hexadecimal digest
-ABI: arm64-v8a
-แหล่งที่มา: URL หรือ release identifier
+ตัวเลข/ข้อความจาก uname    ABI ของ Android
+------------------------------------------
+aarch64                     arm64-v8a
+armv7l หรือ armv8l          armeabi-v7a
+x86_64                      x86_64
+i686 หรือ i386              x86
 ```
 
-อย่าเชื่อ checksum ที่อยู่ในโฟลเดอร์เดียวกับไฟล์โดยอัตโนมัติ หาก checksum และ archive มาจากแหล่งเดียวกันที่ไม่น่าเชื่อถือ ผู้โจมตีอาจแก้ทั้งสองไฟล์พร้อมกันได้
+ผู้ใช้ทั่วไปไม่ต้องเลือกค่าเหล่านี้เอง เพราะ APK มี archive ครบตาม ABI ที่รองรับ แต่ข้อมูลนี้มีประโยชน์เมื่อวิเคราะห์ปัญหา
 
----
+## ถ้า auto-install ไม่สำเร็จ
 
-## 5. คำนวณ SHA-256 ของ archive
+### สถานะเป็น `not-installed`
 
-ค่า SHA-256 ใช้ตรวจว่าไฟล์ที่ดาวน์โหลดมาไม่ถูกเปลี่ยนแปลงระหว่างทาง
+สาเหตุที่เป็นไปได้:
 
-### บน Termux หรือ Linux
+- ติดตั้ง APK รุ่นเก่าที่ไม่มี embedded archives
+- build APK เองโดย task ดาวน์โหลด Bootstrap ไม่สำเร็จ
+- ABI ของอุปกรณ์ไม่อยู่ใน 4 แบบที่รองรับ
+- APK ถูกตัด assets ออกระหว่าง packaging
 
-สมมติไฟล์อยู่ในโฟลเดอร์ Downloads:
+ให้ติดตั้ง APK release รุ่นใหม่จากแหล่งเดียวกัน และอย่าผสม APK จากคนละ source หรือคนละ signing key
 
-```sh
-sha256sum ~/storage/downloads/bootstrap-arm64-v8a.tar.xz
-```
+### สถานะเป็น `layout-installed`
 
-หากยังเข้าถึงโฟลเดอร์ Downloads ไม่ได้ ให้เรียก:
+สถานะนี้หมายถึงมีเพียงโครงสร้างโฟลเดอร์เริ่มต้น ไม่ใช่ Bootstrap ที่ติดตั้งสมบูรณ์ แอปจะไม่เริ่ม shell จริงจนกว่าจะมีสถานะ `verified`
 
-```sh
-termux-setup-storage
-```
+### ข้อความ `Required bootstrap file is missing`
 
-จากนั้นกดยอมรับ permission แล้วลองคำสั่งเดิมอีกครั้ง
+archive ที่ถูกฝังไม่ครบหรือผิดรุ่น ต้อง build APK ใหม่โดยไม่แก้ไข archive และตรวจ SHA-256 pinning ให้ผ่าน
 
-ผลลัพธ์จะมีลักษณะนี้:
+### Shell เริ่มไม่ได้
+
+ตรวจสอบตามลำดับ:
+
+1. ปุ่ม Runtime แสดง `verified` หรือไม่
+2. อุปกรณ์ตรงกับ ABI ที่ APK รองรับหรือไม่
+3. มีพื้นที่ว่างเพียงพอหรือไม่
+4. แอปถูกหยุดโดย battery manager ของผู้ผลิตหรือไม่
+5. ดู Android logcat ด้วย tag `MonnixcodePTY`
+
+### คำสั่งหาไม่พบ
+
+เช่น:
 
 ```text
-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  bootstrap-arm64-v8a.tar.xz
+git: command not found
+python: command not found
 ```
 
-คัดลอกเฉพาะชุดตัวอักษร 64 ตัวด้านหน้าไปใส่ในช่อง SHA-256 ของแอป
-
-### บน Windows PowerShell
-
-```powershell
-Get-FileHash .\bootstrap-arm64-v8a.tar.xz -Algorithm SHA256
-```
-
-### บน macOS
-
-```sh
-shasum -a 256 bootstrap-arm64-v8a.tar.xz
-```
-
-### ตรวจความยาว
-
-SHA-256 ต้องมี 64 ตัวอักษร เป็นเลข `0-9` หรือตัวอักษร `a-f` เท่านั้น ตัวพิมพ์ใหญ่หรือตัวพิมพ์เล็กใช้ได้
-
----
-
-## 6. ตรวจรายการไฟล์ก่อนนำเข้า (ถ้าต้องการ)
-
-หากมีเครื่องที่ติดตั้งคำสั่ง `tar` และ `xz` แล้ว สามารถดูรายการไฟล์โดยไม่ต้องแตกไฟล์ได้:
-
-```sh
-tar -tJf bootstrap-arm64-v8a.tar.xz | head -50
-```
-
-ควรเห็น path ที่ขึ้นต้นด้วย `usr/` และควรพบ:
-
-```text
-usr/bin/sh
-usr/etc/
-```
-
-หลีกเลี่ยง archive ที่มี path แปลก ๆ เช่น:
-
-```text
-../../system/file
-/etc/passwd
-/absolute/path
-```
-
-installer ของ MONNIXCODE จะปฏิเสธ path ที่พยายามออกนอก runtime root แต่ผู้ใช้ก็ควรตรวจแหล่งที่มาของไฟล์ก่อนติดตั้งเสมอ
-
----
-
-## 7. ติดตั้งผ่านแอป MONNIXCODE
-
-### ขั้นตอนที่ 1: เปิดแอป
-
-เปิด **MONNIXCODE Workspace** แล้วรอหน้า Native Workspace โหลดเสร็จ
-
-หากแอปแสดงข้อความว่า Bootstrap ยังไม่พร้อม ถือเป็นพฤติกรรมปกติในครั้งแรก
-
-### ขั้นตอนที่ 2: เปิดหน้า Bootstrap
-
-กดปุ่ม:
-
-```text
-Bootstrap
-```
-
-จะเปิดหน้า:
-
-```text
-MONNIXCODE / BOOTSTRAP
-```
-
-### ขั้นตอนที่ 3: เลือก archive
-
-กด:
-
-```text
-เลือกไฟล์ archive
-```
-
-เลือกไฟล์ `.tar.xz` ที่ดาวน์โหลดไว้
-
-หากไม่เห็นไฟล์:
-
-1. เปิดเมนูของ file picker
-2. เลือก `Downloads` หรือโฟลเดอร์ที่บันทึกไฟล์
-3. เปลี่ยนตัวกรองเป็นไฟล์ทั้งหมด หาก file picker มีตัวเลือกนี้
-4. ตรวจว่าไฟล์ไม่ได้ลงท้ายด้วย `.tar.xz.zip` หรือชื่อซ้ำจากการดาวน์โหลด
-
-### ขั้นตอนที่ 4: กรอก SHA-256
-
-คัดลอก SHA-256 จำนวน 64 ตัวอักษรลงในช่อง:
-
-```text
-SHA-256 checksum (64 hex characters)
-```
-
-ตรวจให้แน่ใจว่าไม่มีช่องว่างหรือข้อความอื่นติดมาด้วย
-
-### ขั้นตอนที่ 5: เริ่มติดตั้ง
-
-กด:
-
-```text
-ติดตั้ง Bootstrap
-```
-
-แอปจะทำงานตามลำดับ:
-
-1. **Verify** — คำนวณและเปรียบเทียบ SHA-256
-2. **Extract** — แตกไฟล์ลง staging directory
-3. **Validate** — ตรวจ required files และความปลอดภัยของ path
-4. **Activate** — สลับ runtime ใหม่แบบ atomic
-5. **Complete** — บันทึกสถานะ verified
-
-อย่าปิดแอปหรือพยายามเปิด archive ด้วยแอปอื่นระหว่างขั้นตอนติดตั้ง
-
-### ขั้นตอนที่ 6: กลับไปที่ Terminal
-
-เมื่อเห็นข้อความลักษณะนี้:
-
-```text
-ติดตั้ง Bootstrap สำเร็จ
-```
-
-กลับไปหน้า Terminal แล้วลองพิมพ์:
-
-```sh
-pwd
-```
-
-หรือ:
-
-```sh
-ls
-```
-
-หาก native PTY เริ่มสำเร็จ จะเห็น prompt หรือ output จาก shell จริง ไม่ใช่ข้อความจำลองจาก UI
-
----
-
-## 8. ตรวจสอบว่าเป็น shell จริงหรือไม่
-
-คำสั่งพื้นฐานที่ใช้ตรวจสอบ:
-
-```sh
-printf '%s\n' "$MONNIXCODE_ROOT"
-printf '%s\n' "$PREFIX"
-printf '%s\n' "$HOME"
-pwd
-printf '%s\n' "$SHELL"
-```
-
-ค่าที่คาดหวัง:
-
-- `MONNIXCODE_ROOT` ชี้ไปยัง `monnixcode-runtime`
-- `PREFIX` ลงท้ายด้วย `/usr`
-- `HOME` อยู่ภายใน runtime
-- `SHELL` ชี้ไปยัง `usr/bin/sh`
-- `pwd` เริ่มต้นที่ runtime home
-
-ทดสอบ environment เพิ่มเติม:
-
-```sh
-printf 'shell=%s\n' "$SHELL"
-printf 'term=%s\n' "$TERM"
-printf 'path=%s\n' "$PATH"
-```
-
-> การมี shell จริงไม่ได้แปลว่าจะมีคำสั่งทุกตัว เช่น `git`, `python`, `node` หรือ package manager ต้องมีอยู่ใน archive หรือถูกติดตั้งใน runtime เพิ่มเติมก่อน
-
----
-
-## 9. ถ้าไม่เคยใช้ Termux มาก่อน ควรเข้าใจอะไรบ้าง
-
-### Shell คืออะไร
-
-Shell คือโปรแกรมรับคำสั่ง เช่น `sh`, `bash` หรือ `zsh` แล้วส่งคำสั่งไปทำงานกับไฟล์และโปรแกรม
-
-### Runtime คืออะไร
-
-Runtime คือโฟลเดอร์ที่รวม shell, library, executable, home และ temporary directory ไว้ด้วยกัน ใน MONNIXCODE runtime อยู่ในพื้นที่ส่วนตัวของแอป
-
-### Package คืออะไร
-
-Package คือชุดไฟล์ของโปรแกรม เช่น `git` หรือ `python` พร้อม metadata และ dependency การมีเพียง `sh` ไม่ได้หมายความว่าจะมี package เหล่านี้ครบ
-
-### PTY คืออะไร
-
-PTY หรือ pseudo-terminal ทำให้แอปส่ง input และรับ output จาก shell แบบ interactive ได้ใกล้เคียง terminal จริง เช่น รองรับ prompt, สี, Enter และการ resize หน้าจอ
-
----
-
-## 10. ปัญหาที่พบบ่อย
-
-### SHA-256 mismatch
-
-ข้อความนี้หมายถึง checksum ที่กรอกไม่ตรงกับไฟล์
-
-ให้ทำดังนี้:
-
-1. คำนวณ checksum ใหม่จากไฟล์เดิม
-2. คัดลอกเฉพาะ digest 64 ตัวอักษร
-3. ตรวจว่าเลือกไฟล์ถูกตัว
-4. อย่าใช้ checksum ของ archive คนละ ABI
-5. หากยังไม่ตรง ให้ดาวน์โหลดไฟล์ใหม่จากแหล่งที่เชื่อถือได้
-
-อย่ากดข้ามการตรวจสอบด้วยการใส่ค่าแบบสุ่ม เพราะ installer ตั้งใจหยุดเมื่อ checksum ไม่ตรง
-
-### Required bootstrap file is missing
-
-archive ไม่มีไฟล์ที่จำเป็น เช่น:
-
-```text
-usr/bin/sh
-```
-
-ให้หา archive ที่เป็น runtime bootstrap จริง ไม่ใช่ source code, APK หรือไฟล์ package เดี่ยว
-
-### Shell เริ่มไม่ได้หลังติดตั้ง
-
-ตรวจสอบ:
-
-- archive ตรงกับ ABI ของโทรศัพท์หรือไม่
-- archive มี `usr/bin/sh` หรือไม่
-- ไฟล์ shell มี executable mode หรือไม่
-- พื้นที่ว่างเพียงพอหรือไม่
-- archive ถูกสร้างสำหรับ Android/Termux-compatible environment หรือไม่
-
-หากยังไม่สำเร็จ ให้ถอนข้อมูลแอปและติดตั้งใหม่เฉพาะเมื่อจำเป็น เพราะการล้าง app data จะลบ runtime ที่ติดตั้งไว้
-
-### เลือกไฟล์ไม่ได้
-
-ตรวจสอบว่า:
-
-- ไฟล์ยังดาวน์โหลดไม่เสร็จหรือไม่
-- ชื่อไฟล์ลงท้ายด้วย `.tar.xz` จริงหรือไม่
-- Android file picker เปิดโฟลเดอร์ Downloads ถูกต้องหรือไม่
-- มีพื้นที่ว่างในเครื่องหรือไม่
-
-### เห็นสถานะ `layout-installed` แต่ shell ยังไม่ทำงาน
-
-สถานะนี้เป็นเพียงโครงสร้างโฟลเดอร์เริ่มต้นของแอป ไม่ใช่ verified Bootstrap และไม่ใช่ Linux runtime เต็มรูปแบบ ต้องติดตั้ง archive จริงผ่านหน้า Bootstrap ก่อน
-
-### คำสั่ง `git`, `python` หรือ `node` หาไม่พบ
-
-เป็นเรื่องปกติหาก archive ยังไม่มีโปรแกรมเหล่านั้น ต้องใช้ package/runtime ที่มีโปรแกรมดังกล่าวและ dependency ครบ อย่านำ binary จาก Android คนละ ABI มาวางทับเอง
+ไม่ได้แปลว่า PTY เสีย แต่หมายความว่าโปรแกรมนั้นไม่ได้อยู่ใน Bootstrap หรือยังไม่ได้ติดตั้ง package ที่เกี่ยวข้อง
 
 ### แอปถูกหยุดเมื่ออยู่เบื้องหลัง
 
-ผู้ผลิตบางรายมี battery optimization ที่เข้มงวด ให้ตรวจการตั้งค่า Battery ของแอปตามความเหมาะสม แต่แอปไม่สามารถข้ามนโยบายของ Android หรือ OEM ได้เอง
+OEM บางรายมี battery optimization ที่เข้มงวด ให้ตรวจการตั้งค่า Battery ของแอปตามความเหมาะสม แอปไม่สามารถข้ามนโยบายของ Android ได้เอง
 
----
+## สำหรับผู้พัฒนา: embedded archive ถูกสร้างอย่างไร
 
-## 11. ความปลอดภัย
+Gradle task `downloadBootstrapArchives` จะ:
 
-- ติดตั้ง archive จากแหล่งที่เชื่อถือได้เท่านั้น
-- ตรวจ SHA-256 ก่อนติดตั้งทุกครั้ง
-- เก็บ checksum จากช่องทางที่เชื่อถือได้และแยกจากไฟล์ archive หากทำได้
-- อย่าใส่รหัสผ่าน, API key หรือ access token ในคำสั่งที่อาจถูกบันทึกไว้ใน screenshot/log
-- อย่าใช้คำสั่งหรือ binary ที่ไม่ทราบที่มา
-- สำรองข้อมูลสำคัญก่อนล้าง app data
-- Bootstrap archive อาจรัน executable ในพื้นที่ของแอป จึงควรตรวจสอบ license และเนื้อหาก่อนติดตั้ง
+1. ดาวน์โหลด release URL ที่กำหนดตายตัว
+2. ตรวจ SHA-256 ของแต่ละ ABI
+3. เก็บไฟล์ไว้ใน generated Android assets
+4. ให้ Gradle ฝัง assets ลง APK
+5. ให้ `BootstrapInstaller.installBundled()` เลือก archive ตาม `Build.SUPPORTED_ABIS`
 
----
+การ build ต้องมีอินเทอร์เน็ตในครั้งแรก:
 
-## 12. Checklist ก่อนแจ้งปัญหา
+```sh
+cd android-app
+./gradlew assembleDebug
+```
 
-กรุณาเก็บข้อมูลต่อไปนี้:
+หาก archive ถูกดาวน์โหลดไม่ครบหรือ checksum ไม่ตรง build จะหยุดทันที ไม่สร้าง APK ที่มี runtime ไม่สมบูรณ์
+
+## ความปลอดภัยและ license
+
+Bootstrap archive มี executable และ library ที่แอปจะนำไปรันใน app-private runtime จึงต้องใช้ release และ checksum ที่เชื่อถือได้เท่านั้น
+
+ต้องรักษา license และ notices ของ Termux packages และ dependencies เมื่อแจกจ่าย APK ระบบนี้ไม่สามารถให้สิทธิ์ Android system root และไม่สามารถเข้าถึง private data ของแอปอื่นได้
+
+## Checklist สำหรับรายงานปัญหา
 
 ```text
 Android version:
 Device model:
 CPU ABI:
 MONNIXCODE app version:
-Bootstrap filename:
-Bootstrap ABI:
-SHA-256:
-Installer status:
+Runtime status:
+พื้นที่ว่างโดยประมาณ:
 ข้อความ error:
+logcat ที่เกี่ยวข้อง:
 ```
 
-ห้ามส่งข้อมูลส่วนตัว, token หรือไฟล์ที่มีข้อมูลลับไปพร้อมกับรายงานปัญหา
+อย่าส่งรหัสผ่าน, token, private key หรือไฟล์ส่วนตัวไปพร้อมกับรายงานปัญหา
 
----
-
-## 13. สรุปแบบเร็ว
+## สรุปแบบเร็ว
 
 ```text
-1. เตรียม archive .tar.xz ที่ตรงกับ ABI
-2. หา SHA-256 ของ archive
-3. เปิด MONNIXCODE
-4. กด Bootstrap
-5. เลือก archive
-6. กรอก SHA-256 64 ตัวอักษร
-7. กด ติดตั้ง Bootstrap
-8. รอ Verify → Extract → Validate → Activate
-9. กลับ Terminal
-10. ทดสอบด้วย pwd, ls และตรวจ $SHELL
+1. ติดตั้ง APK รุ่นที่มี embedded Bootstrap
+2. เปิดแอป
+3. รอ auto-install ครั้งแรก
+4. กด Runtime และตรวจว่าเป็น verified
+5. เปิด Terminal
+6. ทดสอบ pwd, ls และตัวแปร $SHELL
 ```
 
-หากยังไม่มี verified Bootstrap แอปจะไม่อ้างว่า Linux shell ใช้งานได้จริง และจะไม่สร้าง shell binary ปลอมขึ้นมา
+หากยังไม่เป็น `verified` แอปจะไม่อ้างว่า Linux shell พร้อมใช้งาน และจะไม่สร้าง binary ปลอมขึ้นมา
+
+## แหล่งข้อมูล upstream
+
+- [Termux app](https://github.com/termux/termux-app)
+- [Termux packages](https://github.com/termux/termux-packages)
+- [Termux maintainer documentation](https://github.com/termux/termux-packages/wiki/For-maintainers)

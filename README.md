@@ -19,7 +19,7 @@ The Android app is the primary path for Termux-like terminal behavior.
 - Interactive pseudo-terminal backed by native C++17/JNI code.
 - `sh -i` execution with terminal resize, stdin, stdout, and stderr forwarding.
 - Termux-compatible runtime variables: `PREFIX`, `HOME`, `TMPDIR`, `PATH`, `LD_LIBRARY_PATH`, `TERM`, and `MONNIXCODE_ROOT`.
-- Verified `tar.xz` Bootstrap installation with SHA-256 validation.
+- Embedded ABI-specific Termux Bootstrap archives with pinned SHA-256 validation and first-launch auto-install.
 - Secure extraction with path traversal and unsafe symlink checks.
 - Staging, validation, atomic activation, and rollback.
 - Native file selection through Android Storage Access Framework.
@@ -47,28 +47,15 @@ It is **not** Android system root. The app cannot automatically access `/data` b
 
 This design avoids requiring a rooted phone and is the portable option across standard Android devices.
 
-## Bootstrap installation
+## Embedded Bootstrap installation
 
-A real shell requires a verified Termux-compatible Bootstrap archive. The repository does not invent, bundle, or claim to provide fake shell binaries.
+The Android build downloads the official `termux-packages` Bootstrap archives for `aarch64`, `arm`, `i686`, and `x86_64` at build time. Each archive is pinned by SHA-256 and embedded into the APK. On first launch, the app selects the device ABI, extracts the matching archive into the app-private `usr` prefix, restores its symlinks, validates `usr/bin/sh`, and activates the runtime atomically.
 
-The archive must:
+Users do not need to download or select an archive. The **Runtime** button only reports the embedded runtime status. The build task is intentionally networked and reproducible through the pinned release and checksums; it does not download arbitrary files at runtime.
 
-- be built for the device ABI, such as `arm64-v8a`;
-- contain the required runtime files, including `usr/bin/sh`;
-- be distributed with a trusted SHA-256 digest;
-- preserve the licenses and notices of the source packages;
-- be installed through the native **Bootstrap** screen.
+The embedded Bootstrap supplies a Termux-compatible base user-space. It is not the complete Termux application, and package availability, package-manager behavior, and package paths can differ because this application has a different package name and runtime integration. It also does not provide Android system root.
 
-Installation flow:
-
-1. Open the Android app.
-2. Select **Bootstrap**.
-3. Choose the ABI-matched `.tar.xz` archive.
-4. Enter the expected 64-character SHA-256 digest.
-5. Wait for verify, extract, validate, and activate stages to complete.
-6. Return to Terminal. The app will start the native PTY only after status becomes `verified` and `usr/bin/sh` is executable.
-
-Until this step is complete, the app fails closed and does not claim that a real Linux shell is available.
+See [`BOOTSTRAP-GUIDE.md`](BOOTSTRAP-GUIDE.md) for background, ABI terminology, verification, and troubleshooting.
 
 ## Android compatibility
 
@@ -131,7 +118,7 @@ The workflow:
 - uploads APK artifacts;
 - attaches APKs to the GitHub Release for the tag.
 
-The native PTY release is tagged `v1.1.0`.
+The embedded Bootstrap release is prepared as `v1.2.0`.
 
 ## Browser workspace
 

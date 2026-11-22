@@ -1,9 +1,11 @@
 package com.monnixcode.workspace
 
 import android.content.Context
+import android.os.Build
 import android.system.Os
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
+import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
 import org.tukaani.xz.XZInputStream
 import java.io.BufferedInputStream
 import java.io.File
@@ -19,9 +21,9 @@ import java.util.UUID
 /**
  * Installs a verified Termux-compatible bootstrap into the app-private runtime.
  *
- * The archive must be a tar.xz produced for the device ABI. This class does not
- * create or fake shell binaries; it only verifies and installs an archive supplied
- * by the caller.
+ * The embedded path is selected by ABI and verified at build time. The legacy
+ * tar.xz path remains available for maintainers. This class never creates fake
+ * shell binaries.
  */
 object BootstrapInstaller {
     private const val ROOT = "monnixcode-runtime"
@@ -42,6 +44,8 @@ object BootstrapInstaller {
      */
     @Synchronized
     fun install(context: Context) {
+        if (status(context) == "verified") return
+        if (installBundled(context)) return
         val root = runtimeRoot(context)
         val manifest = File(root, "bootstrap/manifest.json")
         if (!manifest.exists()) {
@@ -57,6 +61,35 @@ object BootstrapInstaller {
             "MONNIXCODE bootstrap layout installed\n",
             StandardCharsets.UTF_8
         )
+    }
+
+    /** Installs the ABI-matched Bootstrap archive bundled into the APK. */
+    @Synchronized
+    fun installBundled(context: Context): Boolean {
+        if (status(context) == "verified") return true
+        val abi = Build.SUPPORTED_ABIS.firstOrNull() ?: return false
+        val archive = when (abi) {
+            "arm64-v8a" -> "bootstrap/archives/bootstrap-aarch64.zip"
+            "armeabi-v7a" -> "bootstrap/archives/bootstrap-arm.zip"
+            "x86" -> "bootstrap/archives/bootstrap-i686.zip"
+            "x86_64" -> "bootstrap/archives/bootstrap-x86_64.zip"
+            else -> return false
+        }
+        val sha256 = when (abi) {
+            "arm64-v8a" -> "388acf91cc247e7062d80cd8aa791fe72f360515fb78dc54ff45742120facae7"
+            "armeabi-v7a" -> "ff77211b7e71366b494d6b7d04211081b94de4a291ec5f783bc4ce77333a0c92"
+            "x86" -> "bb397db1a71c65ce8a0928b0c3015c0926f523726214a182e098570d15789afe"
+            "x86_64" -> "fb95765f2ffb4cf5648891199dedb820ed19a63334352fb0bc69b7b7c917e002"
+            else -> return false
+        }
+        return try {
+            context.assets.open(archive).use { input ->
+                installPrefixZip(context, input, sha256)
+            }
+            true
+        } catch (_: IOException) {
+            false
+        }
     }
 
     /**
@@ -184,6 +217,89 @@ object BootstrapInstaller {
             if (installed) backup.deleteRecursively()
             else if (oldRuntimeMoved && !target.exists()) backup.renameTo(target)
         }
+    }
+
+    private fun installPrefixZip(context: Context, source: InputStream, sha256: String) {
+        val runtimeParent = context.filesDir
+        val target = runtimeRoot(context)
+        val staging = File(runtimeParent, ".${ROOT}.staging-${UUID.randomUUID()}")
+        val backup = File(runtimeParent, ".${ROOT}.backup-${UUID.randomUUID()}")
+        var oldRuntimeMoved = false
+        var installed = false
+        try {
+            staging.mkdirs()
+            val prefix = File(staging, "usr").apply { mkdirs() }
+            extractPrefixZip(source, prefix)
+            validateRequiredFiles(staging, DEFAULT_REQUIRED_FILES)
+            File(staging, INSTALL_MARKER).apply {
+                parentFile?.mkdirs()
+                writeText("MONNIXCODE embedded Bootstrap installed\n", StandardCharsets.UTF_8)
+            }
+            File(staging, INSTALL_METADATA).writeText(
+                "{\n" +
+                    "  \"sha256\": \"$sha256\",\n" +
+                    "  \"source\": \"termux-packages embedded archive\",\n" +
+                    "  \"installedAtEpochMs\": ${System.currentTimeMillis()}\n" +
+                    "}\n",
+                StandardCharsets.UTF_8
+            )
+            if (target.exists() && !target.renameTo(backup)) {
+                throw IOException("Could not move the existing bootstrap to backup")
+            }
+            oldRuntimeMoved = backup.exists()
+            if (!staging.renameTo(target)) {
+                if (oldRuntimeMoved) backup.renameTo(target)
+                throw IOException("Could not atomically activate embedded bootstrap")
+            }
+            installed = true
+        } finally {
+            source.close()
+            if (!installed) staging.deleteRecursively()
+            if (installed) backup.deleteRecursively()
+            else if (oldRuntimeMoved && !target.exists()) backup.renameTo(target)
+        }
+    }
+
+    private fun extractPrefixZip(source: InputStream, prefix: File) {
+        val symlinks = mutableListOf<Pair<String, String>>()
+        ZipArchiveInputStream(BufferedInputStream(source, COPY_BUFFER_SIZE)).use { zip ->
+            while (true) {
+                val entry = zip.nextZipEntry ?: break
+                if (entry.name == "SYMLINKS.txt") {
+                    symlinks += zip.readBytes().toString(StandardCharsets.UTF_8)
+                        .lineSequence()
+                        .mapNotNull { line ->
+                            val parts = line.split('←', limit = 2)
+                            if (parts.size == 2) parts[0].trim() to parts[1].trim() else null
+                        }
+                        .toList()
+                    continue
+                }
+                val output = securePath(prefix, entry.name)
+                if (entry.isDirectory) {
+                    output.mkdirs()
+                } else {
+                    output.parentFile?.mkdirs()
+                    FileOutputStream(output).use { zip.copyTo(it, COPY_BUFFER_SIZE) }
+                    if (entry.unixMode != 0) applyMode(output, entry.unixMode)
+                }
+            }
+        }
+        symlinks.forEach { (target, link) ->
+            val linkFile = securePath(prefix, link)
+            createSafeSymlink(prefix, linkFile, target)
+        }
+    }
+
+    private fun createSafeSymlink(root: File, link: File, target: String) {
+        requireSafeSymlinkTarget(target)
+        val resolved = File(link.parentFile, target).canonicalFile
+        if (!isInside(root.canonicalFile, resolved)) {
+            throw SecurityException("Bootstrap symlink escapes prefix: $target")
+        }
+        link.parentFile?.mkdirs()
+        if (link.exists() || Files.isSymbolicLink(link.toPath())) link.delete()
+        Os.symlink(target, link.path)
     }
 
     private fun extractTarXz(
