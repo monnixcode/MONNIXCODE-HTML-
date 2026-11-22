@@ -163,6 +163,27 @@ Release build:
 
 The default release artifact is unsigned. Configure signing only through a protected release configuration.
 
+## Background Bootstrap and Logcat diagnostic
+
+With a USB-debugging device or emulator connected, build the debug APK and run the diagnostic script from the repository root:
+
+```sh
+./android-app/gradlew -p android-app assembleDebug
+./scripts/check-bootstrap-background.sh
+```
+
+The script installs the APK, clears logcat, launches `MainActivity`, collects the `MONIXCODE`, `MonnixcodePTY`, `AndroidRuntime`, and `ActivityManager` entries, checks that the app process remains alive, and checks the Bootstrap marker through `run-as` when the APK is debuggable. It writes the filtered output to `monixcode-bootstrap-logcat.txt`.
+
+Useful options:
+
+```sh
+./scripts/check-bootstrap-background.sh --serial DEVICE_ID --wait 30
+./scripts/check-bootstrap-background.sh --apk path/to/app-debug.apk --log /tmp/monixcode.log
+./scripts/check-bootstrap-background.sh --reset
+```
+
+`--reset` is destructive for this app's local data and is never enabled by default. Use it only when reproducing a first-launch Bootstrap installation.
+
 ## GitHub Actions
 
 Workflow:

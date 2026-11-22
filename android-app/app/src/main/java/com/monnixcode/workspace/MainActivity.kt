@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.os.Build
 import android.os.Environment
 import android.provider.Settings
+import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
@@ -55,19 +56,23 @@ class MainActivity : Activity() {
 
     private fun startBootstrapInstallInBackground() {
         if (bootstrapInstallStarted || BootstrapInstaller.status(this) == "verified") {
+            Log.i(LOG_TAG, "Bootstrap already verified; starting native shell")
             startNativeShellIfAvailable()
             return
         }
         bootstrapInstallStarted = true
+        Log.i(LOG_TAG, "Starting embedded Bootstrap installation in background")
         printLine("Installing embedded Bootstrap in the background…", "info")
         Thread {
             try {
                 BootstrapInstaller.install(this)
+                Log.i(LOG_TAG, "Embedded Bootstrap install finished: ${BootstrapInstaller.status(this)}")
                 runOnUiThread {
                     printLine("Embedded Bootstrap status: ${BootstrapInstaller.status(this)}", "ok")
                     startNativeShellIfAvailable()
                 }
             } catch (error: Throwable) {
+                Log.e(LOG_TAG, "Embedded Bootstrap install failed", error)
                 runOnUiThread {
                     printLine(
                         "Bootstrap install failed; Terminal remains available: ${error.message ?: error.javaClass.simpleName}",
@@ -410,4 +415,8 @@ class MainActivity : Activity() {
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     private data class Theme(val name: String, val background: Int, val text: Int, val accent: Int)
+
+    private companion object {
+        const val LOG_TAG = "MONIXCODE"
+    }
 }

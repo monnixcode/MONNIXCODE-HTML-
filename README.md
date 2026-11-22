@@ -162,6 +162,7 @@ TERMUX-GUIDE.md                       Termux installation guide
 BOOTSTRAP-GUIDE.md                    Beginner guide for installing a verified Bootstrap archive
 termux-source/                        Related Termux source and notices
 .github/workflows/                    Pages and Android release workflows
+scripts/check-bootstrap-background.sh  ADB/logcat Bootstrap startup diagnostic
 ```
 
 ## License
