@@ -51,9 +51,9 @@ command -v adb >/dev/null 2>&1 || { echo "ERROR: adb is required" >&2; exit 1; }
 start_epoch=$(date +%s)
 verified=0
 shell_ready() {
-    "${ADB[@]}" shell run-as "$PACKAGE" test -x \
+    "${ADB[@]}" shell run-as "$PACKAGE" /system/bin/toybox test -x \
         files/monnixcode-runtime/usr/bin/sh >/dev/null 2>&1 &&
-        "${ADB[@]}" shell run-as "$PACKAGE" test -x \
+        "${ADB[@]}" shell run-as "$PACKAGE" /system/bin/toybox test -x \
         files/monnixcode-runtime/usr/bin/dash >/dev/null 2>&1
 }
 while true; do
@@ -83,9 +83,10 @@ if [[ "$verified" != 1 ]]; then
     echo "Runtime listing:" >&2
     "${ADB[@]}" shell run-as "$PACKAGE" find files/monnixcode-runtime -maxdepth 3 -type f -print 2>&1 || true
     echo "Shell link diagnostics:" >&2
-    "${ADB[@]}" shell run-as "$PACKAGE" sh -c \
-        'ls -ld files/monnixcode-runtime/usr/bin/sh files/monnixcode-runtime/usr/bin/dash; readlink files/monnixcode-runtime/usr/bin/sh' \
-        2>&1 || true
+    "${ADB[@]}" shell run-as "$PACKAGE" /system/bin/ls -ld \
+        files/monnixcode-runtime/usr/bin/sh files/monnixcode-runtime/usr/bin/dash 2>&1 || true
+    "${ADB[@]}" shell run-as "$PACKAGE" /system/bin/readlink \
+        files/monnixcode-runtime/usr/bin/sh 2>&1 || true
     exit 11
 fi
 
