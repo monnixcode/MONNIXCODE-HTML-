@@ -381,9 +381,13 @@ object BootstrapInstaller {
     }
 
     private fun requireSafeRelativePath(path: String) {
-        require(path.isNotBlank() && !path.startsWith('/')) { "Unsafe archive path: $path" }
-        val normalized = path.replace('\\', '/')
-        require(normalized.split('/').none { it == ".." || it.isEmpty() && normalized != "/" }) {
+        require(path.isNotBlank() && !path.startsWith('/') && !path.contains('\u0000')) {
+            "Unsafe archive path: $path"
+        }
+        // ZIP directory entries commonly end with '/', e.g. "bin/". Remove
+        // only trailing separators for validation; traversal checks remain strict.
+        val normalized = path.replace('\\', '/').trimEnd('/')
+        require(normalized.isNotBlank() && normalized.split('/').none { it == ".." || it.isEmpty() }) {
             "Unsafe archive path: $path"
         }
     }
