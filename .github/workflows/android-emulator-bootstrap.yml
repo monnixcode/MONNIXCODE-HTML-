@@ -63,12 +63,17 @@ jobs:
         working-directory: android-app
         run: chmod +x ./gradlew && ./gradlew --no-daemon assembleDebug
 
+      - name: Enable KVM for emulator
+        run: |
+          if [ -e /dev/kvm ]; then
+            sudo chmod 666 /dev/kvm
+            stat -c 'KVM: %A %U:%G' /dev/kvm
+          else
+            echo 'KVM device is unavailable on this runner; emulator action will report the limitation.'
+          fi
+
       - name: Run Bootstrap test on emulator
         uses: reactivecircus/android-emulator-runner@v2
-        env:
-          # Ubuntu hosted runners may not expose KVM. Android Emulator 37.x
-          # rejects -accel off unless this opt-in is present.
-          ANDROID_I_WANT_MY_TCG: yes
         with:
           api-level: 35
           target: google_apis
@@ -76,10 +81,7 @@ jobs:
           profile: pixel_2
           force-avd-creation: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
-          # GitHub-hosted Linux runners provide KVM. Leaving this as auto made
-          # the action append -accel off; recent emulator images reject TCG
-          # unless ANDROID_I_WANT_MY_TCG is explicitly set.
-          disable-linux-hw-accel: true
+          disable-linux-hw-accel: false
           disable-animations: true
           script: ./scripts/test-bootstrap-emulator.sh --wait 90
 
