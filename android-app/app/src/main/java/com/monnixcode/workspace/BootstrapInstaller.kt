@@ -248,6 +248,7 @@ object BootstrapInstaller {
             staging.mkdirs()
             val prefix = File(staging, "usr").apply { mkdirs() }
             extractPrefixZip(source, prefix)
+            restoreRequiredExecutableModes(staging)
             validateRequiredFiles(staging, DEFAULT_REQUIRED_FILES)
             File(staging, INSTALL_MARKER).apply {
                 parentFile?.mkdirs()
@@ -408,6 +409,20 @@ object BootstrapInstaller {
         requiredFiles.forEach { relative ->
             val file = securePath(root, relative)
             if (!file.exists()) throw IOException("Required bootstrap file is missing: $relative")
+        }
+    }
+
+    private fun restoreRequiredExecutableModes(root: File) {
+        listOf("usr/bin/sh", "usr/bin/pkg", "usr/bin/apt", "usr/bin/nix").forEach { relative ->
+            val file = securePath(root, relative)
+            if (file.exists()) {
+                try {
+                    Os.chmod(file.canonicalFile.path, 0x1C0)
+                } catch (_: Exception) {
+                    // Validation below still requires the path to exist; platforms that
+                    // reject chmod will fail the emulator executable check explicitly.
+                }
+            }
         }
     }
 
