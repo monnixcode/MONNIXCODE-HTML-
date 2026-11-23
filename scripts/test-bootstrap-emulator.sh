@@ -50,9 +50,20 @@ command -v adb >/dev/null 2>&1 || { echo "ERROR: adb is required" >&2; exit 1; }
 
 start_epoch=$(date +%s)
 verified=0
+shell_ready() {
+    "${ADB[@]}" shell run-as "$PACKAGE" sh -c '
+        shell=files/monnixcode-runtime/usr/bin/sh
+        if test -x "$shell"; then
+            exit 0
+        fi
+        test -L "$shell" &&
+            test -x files/monnixcode-runtime/usr/bin/dash &&
+            test "$(readlink "$shell")" = dash
+    ' >/dev/null 2>&1
+}
 while true; do
     if "${ADB[@]}" shell run-as "$PACKAGE" test -f files/monnixcode-runtime/bootstrap-install.json >/dev/null 2>&1 && \
-       "${ADB[@]}" shell run-as "$PACKAGE" test -x files/monnixcode-runtime/usr/bin/sh >/dev/null 2>&1; then
+       shell_ready; then
         verified=1
         break
     fi
