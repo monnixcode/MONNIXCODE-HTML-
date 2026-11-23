@@ -52,13 +52,9 @@ start_epoch=$(date +%s)
 verified=0
 shell_ready() {
     "${ADB[@]}" shell run-as "$PACKAGE" sh -c '
-        shell=files/monnixcode-runtime/usr/bin/sh
-        if test -x "$shell"; then
-            exit 0
-        fi
-        test -L "$shell" &&
-            test -x files/monnixcode-runtime/usr/bin/dash &&
-            test "$(readlink "$shell")" = dash
+        runtime=/data/user/0/com.monnixcode.workspace/files/monnixcode-runtime
+        test -x "$runtime/usr/bin/sh" &&
+            test -x "$runtime/usr/bin/dash"
     ' >/dev/null 2>&1
 }
 while true; do
