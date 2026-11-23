@@ -82,6 +82,10 @@ if [[ "$verified" != 1 ]]; then
     echo "FAIL: Bootstrap marker or executable shell was not ready within ${WAIT_SECONDS}s" >&2
     echo "Runtime listing:" >&2
     "${ADB[@]}" shell run-as "$PACKAGE" find files/monnixcode-runtime -maxdepth 3 -type f -print 2>&1 || true
+    echo "Shell link diagnostics:" >&2
+    "${ADB[@]}" shell run-as "$PACKAGE" sh -c \
+        'ls -ld files/monnixcode-runtime/usr/bin/sh files/monnixcode-runtime/usr/bin/dash; readlink files/monnixcode-runtime/usr/bin/sh' \
+        2>&1 || true
     exit 11
 fi
 
