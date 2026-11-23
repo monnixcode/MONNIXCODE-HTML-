@@ -315,14 +315,14 @@ object BootstrapInstaller {
     }
 
     private fun createSafeSymlink(root: File, link: File, target: String) {
-        requireSafeSymlinkTarget(target)
-        val resolved = File(link.parentFile, target).canonicalFile
+        val safeTarget = normalizeSymlinkTarget(root, link, target)
+        val resolved = File(link.parentFile, safeTarget).canonicalFile
         if (!isInside(root.canonicalFile, resolved)) {
             throw SecurityException("Bootstrap symlink escapes prefix: $target")
         }
         link.parentFile?.mkdirs()
         if (link.exists() || Files.isSymbolicLink(link.toPath())) link.delete()
-        Os.symlink(target, link.path)
+        Os.symlink(safeTarget, link.path)
     }
 
     private fun extractTarXz(
@@ -393,15 +393,15 @@ object BootstrapInstaller {
 
     private fun createSafeSymlink(root: File, link: File, entry: TarArchiveEntry) {
         val target = entry.linkName
-        requireSafeSymlinkTarget(target)
-        val resolvedTarget = File(link.parentFile, target).canonicalFile
+        val safeTarget = normalizeSymlinkTarget(root, link, target)
+        val resolvedTarget = File(link.parentFile, safeTarget).canonicalFile
         val canonicalRoot = root.canonicalFile
         if (!isInside(canonicalRoot, resolvedTarget)) {
             throw SecurityException("Symlink escapes bootstrap root: ${entry.name}")
         }
         link.parentFile?.mkdirs()
         if (link.exists() || Files.isSymbolicLink(link.toPath())) link.delete()
-        Os.symlink(target, link.path)
+        Os.symlink(safeTarget, link.path)
     }
 
     private fun validateRequiredFiles(root: File, requiredFiles: Collection<String>) {
@@ -442,6 +442,29 @@ object BootstrapInstaller {
         require(path.isNotBlank() && !path.startsWith('/') && !path.contains('\u0000')) {
             "Unsafe symlink target: $path"
         }
+    }
+
+    private fun normalizeSymlinkTarget(root: File, link: File, target: String): String {
+        if (!target.startsWith('/')) {
+            requireSafeSymlinkTarget(target)
+            return target
+        }
+
+        val termuxUsr = "/data/data/com.termux/files/usr"
+        require(target == termuxUsr || target.startsWith("$termuxUsr/")) {
+            "Unsafe symlink target: $target"
+        }
+        val suffix = target.removePrefix(termuxUsr).trimStart('/')
+        val resolved = File(root, if (suffix.isEmpty()) "usr" else "usr/$suffix").canonicalFile
+        if (!isInside(root.canonicalFile, resolved)) {
+            throw SecurityException("Bootstrap symlink escapes prefix: $target")
+        }
+        val parent = requireNotNull(link.parentFile) { "Symlink has no parent: $link" }
+        val relative = parent.canonicalFile.toPath()
+            .relativize(resolved.toPath())
+            .toString()
+        requireSafeSymlinkTarget(relative)
+        return relative
     }
 
     private fun isInside(root: File, child: File): Boolean {
