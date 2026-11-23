@@ -8,6 +8,7 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
 import org.tukaani.xz.XZInputStream
 import java.io.BufferedInputStream
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -30,7 +31,24 @@ object BootstrapInstaller {
     private const val INSTALL_MARKER = "usr/etc/monnixcode-bootstrap-installed"
     private const val INSTALL_METADATA = "bootstrap-install.json"
     private const val MAX_ENTRY_COUNT = 100_000
+    private const val MAX_ZIP_ENTRY_COUNT = 10_000
+    private const val MAX_DECOMPRESSED_BYTES = 256L * 1024L * 1024L
     private const val COPY_BUFFER_SIZE = 64 * 1024
+
+    private class ExtractionBudget(private val maxBytes: Long) {
+        var totalBytes: Long = 0
+            private set
+
+        fun consume(count: Int) {
+            val nextTotal = totalBytes + count.toLong()
+            if (nextTotal > maxBytes) {
+                throw SecurityException(
+                    "Bootstrap decompressed data exceeds ${maxBytes / (1024 * 1024)} MiB"
+                )
+            }
+            totalBytes = nextTotal
+        }
+    }
 
     data class InstallProgress(
         val percent: Int,
@@ -262,11 +280,16 @@ object BootstrapInstaller {
 
     private fun extractPrefixZip(source: InputStream, prefix: File) {
         val symlinks = mutableListOf<Pair<String, String>>()
+        val budget = ExtractionBudget(MAX_DECOMPRESSED_BYTES)
+        var entries = 0
         ZipArchiveInputStream(BufferedInputStream(source, COPY_BUFFER_SIZE)).use { zip ->
             while (true) {
                 val entry = zip.nextZipEntry ?: break
+                if (++entries > MAX_ZIP_ENTRY_COUNT) {
+                    throw SecurityException("Bootstrap ZIP contains too many entries")
+                }
                 if (entry.name == "SYMLINKS.txt") {
-                    symlinks += zip.readBytes().toString(StandardCharsets.UTF_8)
+                    symlinks += readTextWithBudget(zip, budget)
                         .lineSequence()
                         .mapNotNull { line ->
                             val parts = line.split('←', limit = 2)
@@ -280,7 +303,7 @@ object BootstrapInstaller {
                     output.mkdirs()
                 } else {
                     output.parentFile?.mkdirs()
-                    FileOutputStream(output).use { zip.copyTo(it, COPY_BUFFER_SIZE) }
+                    FileOutputStream(output).use { copyWithBudget(zip, it, budget) }
                     if (entry.unixMode != 0) applyMode(output, entry.unixMode)
                 }
             }
@@ -307,6 +330,7 @@ object BootstrapInstaller {
         destination: File,
         onProgress: (InstallProgress) -> Unit
     ) {
+        val budget = ExtractionBudget(MAX_DECOMPRESSED_BYTES)
         XZInputStream(BufferedInputStream(source, COPY_BUFFER_SIZE)).use { xz ->
             TarArchiveInputStream(BufferedInputStream(xz, COPY_BUFFER_SIZE)).use { tar ->
                 var entries = 0
@@ -333,7 +357,7 @@ object BootstrapInstaller {
                         }
                         entry.isFile -> {
                             output.parentFile?.mkdirs()
-                            FileOutputStream(output).use { tar.copyTo(it, COPY_BUFFER_SIZE) }
+                            FileOutputStream(output).use { copyWithBudget(tar, it, budget) }
                             applyMode(output, entry.mode)
                         }
                         else -> {
@@ -343,6 +367,28 @@ object BootstrapInstaller {
                 }
             }
         }
+    }
+
+    private fun copyWithBudget(input: InputStream, output: FileOutputStream, budget: ExtractionBudget) {
+        val buffer = ByteArray(COPY_BUFFER_SIZE)
+        while (true) {
+            val count = input.read(buffer)
+            if (count < 0) break
+            budget.consume(count)
+            output.write(buffer, 0, count)
+        }
+    }
+
+    private fun readTextWithBudget(input: InputStream, budget: ExtractionBudget): String {
+        val output = ByteArrayOutputStream()
+        val buffer = ByteArray(COPY_BUFFER_SIZE)
+        while (true) {
+            val count = input.read(buffer)
+            if (count < 0) break
+            budget.consume(count)
+            output.write(buffer, 0, count)
+        }
+        return output.toString(StandardCharsets.UTF_8.name())
     }
 
     private fun createSafeSymlink(root: File, link: File, entry: TarArchiveEntry) {
