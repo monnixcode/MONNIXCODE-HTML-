@@ -2,7 +2,7 @@
 
 คู่มือนี้อธิบายการติดตั้งและใช้งาน MONNIXCODE HTML Terminal บน Android ผ่าน Termux ตั้งแต่เริ่มต้นจนถึงการอัปเดตโปรเจกต์และแก้ปัญหาเบื้องต้น
 
-> **สำคัญ:** เวอร์ชันนี้เป็น Terminal จำลองบน Browser ด้วย HTML/CSS/JavaScript ไม่ใช่ Linux shell จริงในหน้าเว็บ คำสั่ง `nix` ที่อยู่ในหน้าเว็บเป็นการจำลอง และไม่สามารถติดตั้งแพ็กเกจจริงด้วย `apt` หรือ `pkg` ได้
+> **สำคัญ:** หน้าเว็บเป็น Browser simulator จึงไม่สามารถติดตั้งแพ็กเกจจริงได้ คำสั่ง `pkg`/`apt` ในหน้าเว็บจะแสดงผลจำลองเท่านั้น ส่วนคำสั่งใน Android native PTY หรือแอป Termux จะทำงานกับ package manager จริงเมื่อ Bootstrap/repository พร้อม
 
 ## 1. สิ่งที่ต้องเตรียม
 
@@ -15,16 +15,20 @@
 
 ## 2. ติดตั้งเครื่องมือใน Termux
 
-เปิดแอป Termux แล้วรันทีละคำสั่ง:
+เปิดแอป Termux แล้วรันคำสั่งมาตรฐานของ Termux:
 
 ```sh
-pkg update && pkg upgrade -y
+pkg update
+pkg upgrade -y
 pkg install git python -y
 ```
+
+`pkg` เป็น frontend ของ `apt` ใน Termux จึงใช้ `apt update`, `apt upgrade` และ `apt install` ได้เช่นกัน แต่แนะนำให้ใช้ `pkg` สำหรับงานประจำวัน
 
 ตรวจสอบว่าเครื่องมือพร้อมใช้งาน:
 
 ```sh
+pkg --version
 git --version
 python --version
 ```
@@ -144,27 +148,26 @@ pkill -f 'http.server 8080'
 
 เมื่อเปิดหน้าเว็บแล้ว ให้พิมพ์คำสั่งในช่องด้านล่างและกด Enter
 
-### คำสั่งจัดการแพ็กเกจแบบจำลอง
+### คำสั่งจัดการแพ็กเกจแบบ Termux
+
+ใช้คำสั่งเหล่านี้ใน Android native terminal หรือ Termux จริง:
 
 ```sh
-nix help
-nix up
-nix in git curl
-nix rm git
-nix se python
-nix ls
-nix root
+pkg update
+pkg upgrade -y
+pkg install git python curl -y
+pkg list-installed
 ```
 
-ความหมาย:
+คำสั่ง `apt` เป็น alias ที่ใช้แทนกันได้:
 
-- `nix help` แสดงรายการคำสั่ง
-- `nix up` จำลองการอัปเดต package database
-- `nix in git curl` จำลองการติดตั้งแพ็กเกจ `git` และ `curl`
-- `nix rm git` จำลองการลบแพ็กเกจ
-- `nix se python` ค้นหาแพ็กเกจจากรายการจำลอง
-- `nix ls` แสดงแพ็กเกจที่อยู่ในรายการติดตั้ง
-- `nix root` แจ้งข้อจำกัดของ browser sandbox
+```sh
+apt update
+apt upgrade -y
+apt install git python -y
+```
+
+ในหน้าเว็บสามารถทดลองคำสั่งชุดเดียวกันได้ แต่ผลลัพธ์เป็น simulator และไม่ดาวน์โหลดหรือติดตั้งแพ็กเกจจริง คำสั่ง `nix up`, `nix in <pkg>` และ `nix ls` ยังคงมีไว้เพื่อความเข้ากันได้กับเวอร์ชันเดิมของหน้าเว็บ
 
 ### คำสั่งพื้นฐาน
 

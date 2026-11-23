@@ -250,9 +250,13 @@ class MainActivity : Activity() {
             "clear", "cls" -> terminalOutput.text = ""
             "help" -> listOf(
                 "help, clear, pwd, whoami, date, uname, echo <text>",
+                "pkg update",
+                "pkg upgrade -y",
+                "pkg install <package...> -y",
+                "apt update|upgrade|install are supported aliases",
                 "ls, git status, git help, open <file>",
                 "Runtime uses the embedded ABI-matched Bootstrap and installs it automatically.",
-                "Full Linux commands require a verified runtime and PTY."
+                "Full Linux commands run through the verified PTY; package commands use pkg/apt."
             ).forEach { printLine(it, "info") }
             "pwd" -> printLine("/data/data/com.monnixcode.workspace/files/monnixcode-runtime/home", "ok")
             "whoami" -> printLine("u0_a${android.os.Process.myUid()}", "ok")

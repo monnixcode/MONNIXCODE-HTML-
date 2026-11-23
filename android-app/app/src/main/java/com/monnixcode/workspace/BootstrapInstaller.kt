@@ -433,6 +433,8 @@ object BootstrapInstaller {
 
     private val DEFAULT_REQUIRED_FILES = listOf(
         "usr/bin/sh",
+        "usr/bin/pkg",
+        "usr/bin/apt",
         "usr/etc"
     )
 }

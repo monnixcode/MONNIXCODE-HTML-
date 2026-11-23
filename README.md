@@ -132,7 +132,8 @@ Live site:
 Run locally in Termux:
 
 ```sh
-pkg update && pkg upgrade -y
+pkg update
+pkg upgrade -y
 pkg install git python -y
 git clone https://github.com/monnixcode/MONNIXCODE-HTML-.git
 cd MONNIXCODE-HTML-
